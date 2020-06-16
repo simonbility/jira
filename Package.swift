@@ -20,7 +20,7 @@ let package = Package(
             name: "jira",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "SwiftToolsSupport", package: "swift-tools-support-core"),
+                .product(name: "SwiftToolsSupport-auto", package: "swift-tools-support-core"),
             ]
         ),
         .testTarget(
