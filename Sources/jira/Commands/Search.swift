@@ -4,6 +4,10 @@ import TSCBasic
 import TSCUtility
 
 struct Search: ParsableCommand {
+    
+    static var configuration = CommandConfiguration(
+        abstract: "Search issues on jira"
+    )
 
     @Option(parsing:.upToNextOption)
     var key: [String]

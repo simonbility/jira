@@ -12,13 +12,17 @@ import TSCUtility
 
 struct Current: ParsableCommand {
 
+    static var configuration = CommandConfiguration(
+        abstract: "get current jira ticket from branch-name"
+    )
+
     func run() throws {
         guard let tc = TerminalController(stream: stdoutStream) else {
             return
         }
         tc.endLine()
         let git = try Git()
-        
+
         let branch = try git.getCurrentBranch() as NSString
 
         let range = branch.range(of: #"[A-Z]+-[0-9]+"#, options: .regularExpression)
@@ -28,7 +32,6 @@ struct Current: ParsableCommand {
             tc.write("couldnt extract ticket from branch-name", inColor: .red)
             Darwin.exit(EXIT_FAILURE)
         }
-        
 
         api.find(key: key) { result in
             switch result {
