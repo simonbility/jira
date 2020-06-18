@@ -7,12 +7,6 @@
 
 import Foundation
 
-struct ToolChain {
-    let api: JiraAPI
-    let git: Git
-}
-
-
 struct Configuration {
     var credentials: String?
     
