@@ -8,26 +8,27 @@
 import Foundation
 import TSCUtility
 import TSCBasic
+import ArgumentParser
 
 enum Shell {
     
-    static func execute(arguments: [String], reason: String?) throws -> String {
-        let tc = TerminalController(stream: stdoutStream)
-        if let reason = reason {
-            tc?.write(reason, bold: true)
-            tc?.write(": ")
-            
-        }
+    struct Errors: LocalizedError {
+        let errorDescription: String?
+    }
+    
+    static func execute(arguments: [String], quiet: Bool = false) throws -> String {
+        let tc = quiet ? nil : TerminalController(stream: stdoutStream)
         tc?.write(arguments.joined(separator: " "), inColor: .cyan)
         let result = try Process.popen(arguments: arguments)
-
         
         guard result.exitStatus == .terminated(code: 0) else {
             let output = try result
                 .utf8stderrOutput()
                 .trimmingCharacters(in: .whitespacesAndNewlines)
+            
             tc?.writeCompact(color: .red, output)
-            throw ProcessResult.Error.nonZeroExit(result)
+            
+            throw ExitCode.failure
         }
 
         let output = try
@@ -66,7 +67,7 @@ struct Git {
     init() throws {
         executable = try Shell.execute(
             arguments: ["which", "git"],
-            reason: "Initialize Git"
+            quiet: true
         )
     }
 
@@ -74,12 +75,14 @@ struct Git {
         try execute(arguments: args, reason: reason)
     }
 
+    @discardableResult
     func execute(reason: String? = nil, _ args: String...) throws -> String {
         return try execute(arguments: args, reason: reason)
     }
 
+    @discardableResult
     func execute(arguments: [String], reason: String?) throws -> String {
-        return try Shell.execute(arguments:  [executable] + arguments, reason: reason)
+        return try Shell.execute(arguments:  [executable] + arguments)
     }
 
     func getCurrentBranch() throws -> String {
@@ -89,5 +92,17 @@ struct Git {
             "--abbrev-ref",
             "HEAD"
         )
+    }
+    
+    func getIssueKeyFromBranch() throws -> String {
+        let branch = try getCurrentBranch() as NSString
+            
+        let range = branch.range(of: #"[A-Z]+-[0-9]+"#, options: .regularExpression)
+        
+        guard range.location != NSNotFound else {
+            throw Current.Errors.noTicketPatternFound
+        }
+        
+        return branch.substring(with: range)
     }
 }

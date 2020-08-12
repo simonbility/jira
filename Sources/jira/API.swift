@@ -8,24 +8,18 @@
 import Combine
 import Foundation
 import TSCBasic
+import ArgumentParser
 
 enum JiraError: Error {
     case underlying(Error)
     case multipleIssuesFound([Issue])
     case notFound
+    case custom(String)
 }
 
 protocol JiraAPI {
-
-    func search(
-        _ search: JQL,
-        completion: @escaping (Result<SearchResults, JiraError>) -> Void
-    )
-
-    func find(
-        key: String,
-        completion: @escaping (Result<Issue, FindIssueError>) -> Void
-    )
+    func search(_ search: JQL) throws -> SearchResults
+    func find(key: String) throws -> Issue
 }
 
 enum FindIssueError: Error {
@@ -35,110 +29,105 @@ enum FindIssueError: Error {
 }
 
 class API: JiraAPI {
-
-    init(credentials: String) {
+    
+    init(credentials: String? = ProcessInfo.processInfo.environment["JIRA_CREDENTIALS"]) {
         self.credentials = credentials
     }
 
     let session = URLSession.shared
     let base = URL(string: "https://imobility.atlassian.net/rest/api")!
-    let credentials: String
+    let credentials: String?
     var cancellables: [AnyCancellable] = []
 
-    func search(
-        _ search: JQL,
-        completion: @escaping (Result<SearchResults, JiraError>) -> Void
-    ) {
-        let tc = TerminalController(stream: stdoutStream)
-        tc?.write("Searching Issues: ")
-        tc?.write(search.rawValue, inColor: .cyan)
+    func search(_ search: JQL) throws -> SearchResults {
+//        let tc = TerminalController(stream: stdoutStream)
+//        tc?.write("Searching Issues: ")
+//        tc?.write(search.rawValue, inColor: .cyan)
+//        tc?.endLine()
 
-        _search(search) { result in
-            switch result {
-            case .success(let res):
-                tc?.writeCompact(color: .green, "\(res.issues.count) results")
-            case .failure(let e):
-                tc?.writeCompact(color: .red, "\(e)")
-            }
-            tc?.endLine()
-            completion(result)
-        }
+        return try _search(search)
     }
 
-    func find(
-        key: String,
-        completion: @escaping (Result<Issue, FindIssueError>) -> Void
-    ) {
+    func find(key: String) throws -> Issue {
+        
         let jql = JQL(rawValue: "key = \(key)")
         let tc = TerminalController(stream: stdoutStream)
         tc?.write("Fetching Issue: ")
         tc?.write(jql.rawValue, inColor: .cyan)
+        tc?.endLine()
 
-        self._search(jql) { res in
-
-            let finalResult: Result<Issue, FindIssueError> =
-                res
-                .mapError(FindIssueError.underlying)
-                .flatMap { val in
-                    switch val.issues.count {
-                    case 0: return .failure(.notFound)
-                    case 1: return .success(val.issues[0])
-                    default: return .failure(.ambiguous(val.issues))
-                    }
-                }
-
-            switch finalResult {
-            case .success(let res):
-                tc?.writeCompact(color: .green, res.fields.summary)
-            case .failure(let e):
-                tc?.writeCompact(color: .red, "\(e)")
-            }
-
-            completion(finalResult)
-
+        let results = try self._search(jql)
+        
+        switch results.issues.count {
+        case 1: return results.issues[0]
+        case 0: throw FindIssueError.notFound
+        default: throw FindIssueError.ambiguous(results.issues)
         }
+            
     }
 
     private func _search(
-        _ search: JQL,
-        completion: @escaping (Result<SearchResults, JiraError>) -> Void
-    ) {
+        _ search: JQL
+    ) throws -> SearchResults {
         guard
             var comps = URLComponents(
                 url: base.appendingPathComponent("/3/search"),
                 resolvingAgainstBaseURL: false
             )
         else {
-            return
+            throw JiraError.custom("could build request")
         }
 
         comps.queryItems = []
         comps.queryItems?.append(URLQueryItem(name: "jql", value: search.rawValue))
 
         guard var urlRequest = comps.url.map({ URLRequest(url: $0) }) else {
-            return
+            throw JiraError.custom("could build request")
+        }
+        guard let credentials = self.credentials else {
+            throw JiraError.custom("JIRA_CREDENTIALS not set")
         }
 
         urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
         let base64LoginData = credentials.data(using: .utf8)!.base64EncodedString()
         urlRequest.setValue("Basic \(base64LoginData)", forHTTPHeaderField: "Authorization")
 
-        session.dataTaskPublisher(for: urlRequest)
+        return try session
+            .dataTaskPublisher(for: urlRequest)
             .map(\.data)
             .decode(type: SearchResults.self, decoder: JSONDecoder())
-            .sink(
-                receiveCompletion: { comp in
-                    switch comp {
-                    case .failure(let e):
-                        completion(.failure(JiraError.underlying(e)))
-                    case .finished: break
-                    }
-                },
-                receiveValue: {
-                    completion(.success($0))
-                }
-            )
-            .store(in: &cancellables)
+            .mapError(JiraError.underlying)
+            .awaitSingle()
 
+    }
+}
+
+
+extension Publisher {
+    
+    func awaitSingle() throws -> Output {
+
+        let group = DispatchGroup()
+        var result: Result<Output, Failure>!
+        group.enter()
+        var cancellable: Cancellable? = self.sink(
+            receiveCompletion: { comp in
+                switch comp {
+                case .failure(let e):
+                    result = .failure(e)
+                case .finished: break
+                }
+                group.leave()
+            },
+            receiveValue: {
+                result = .success($0)
+            }
+        )
+        
+        group.wait()
+        cancellable?.cancel()
+        cancellable = nil
+        
+        return try result!.get()
     }
 }

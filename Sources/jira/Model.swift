@@ -153,17 +153,21 @@ struct Issue: Codable {
         let status: Status
     }
     
-    func write(to controller: TerminalController) {
-        controller.write(key, inColor: .green)
-        controller.write(" \(sanitizedSummary) [")
-        controller.write(fields.status.name, inColor: fields.status.terminalColor)
-        controller.write("]")
-        controller.endLine()
-        for (_,  value, color) in attributes {
-            controller.write(value, inColor: color)
-            controller.endLine()
+    func write(to controller: TerminalController?) {
+        guard let tc = controller else {
+            print(self)
+            return
         }
-        controller.endLine()
+        tc.write(key, inColor: .green)
+        tc.write(" \(sanitizedSummary) [")
+        tc.write(fields.status.name, inColor: fields.status.terminalColor)
+        tc.write("]")
+        tc.endLine()
+        for (_,  value, color) in attributes {
+            tc.write(value, inColor: color)
+            tc.endLine()
+        }
+        tc.endLine()
     }
     
     var attributes: [(key: String, value: String, color: TerminalController.Color)] {
@@ -178,22 +182,3 @@ struct Issue: Codable {
     
 }
 
-extension TerminalController {
-    func writeRow(_ contents: String, width: Int, color: TerminalController.Color) {
-        let availableWidth = width - 4
-        let lineContents = contents.prefix(availableWidth)
-        write("| ")
-        write(String(lineContents), inColor: color)
-        write(String(repeating: " ", count: availableWidth - lineContents.count))
-        write(" |")
-        endLine()
-    }
-    
-    func writeSeparator(width: Int) {
-        write("+")
-        write(String(repeating: "-", count: width - 2))
-        write("+")
-        endLine()
-    }
-    
-}
