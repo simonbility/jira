@@ -6,9 +6,9 @@
 //
 
 import ArgumentParser
+import Combine
 import Foundation
 import TSCBasic
-import Combine
 import TSCUtility
 
 extension JiraError: LocalizedError {
@@ -17,12 +17,12 @@ extension JiraError: LocalizedError {
         case .multipleIssuesFound(let issues):
             let names = issues.map(\.key).joined(separator: ", ")
             return """
-            Multiple Issues found: (\(names))
-            """
+                Multiple Issues found: (\(names))
+                """
         case .notFound:
             return """
-            Issue Not found
-            """
+                Issue Not found
+                """
         case .underlying(let e):
             return "\(e.localizedDescription)"
         case .custom(let m):
@@ -35,26 +35,24 @@ extension FindIssueError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .ambiguous(let issues):
-            let names = issues.map(\.key).joined(separator: ", ")
             return """
-            Multiple Issues found: (\(names))
-            """
+                Multiple Issues found: (\(commaSeparated:  issues.map(\.key)))
+                """
         case .notFound:
             return """
-            Issue Not found
-            """
+                Issue Not found
+                """
         case .underlying(let e):
             return "\(e.localizedDescription)"
         }
     }
 }
 
-
 struct Current: ParsableCommand {
 
     enum Errors: String, LocalizedError {
-        case noTicketPatternFound  = "could not extract ticket from branch"
-        
+        case noTicketPatternFound = "could not extract ticket from branch"
+
         var errorDescription: String? { rawValue }
     }
 
@@ -65,9 +63,8 @@ struct Current: ParsableCommand {
     func run() throws {
         let key = try git.getIssueKeyFromBranch()
         let issue = try api.find(key: key)
-        
+
         issue.write(to: terminal)
     }
 
 }
-

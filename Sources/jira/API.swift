@@ -5,10 +5,10 @@
 //  Created by Simon Anreiter on 23.05.20.
 //
 
+import ArgumentParser
 import Combine
 import Foundation
 import TSCBasic
-import ArgumentParser
 
 enum JiraError: Error {
     case underlying(Error)
@@ -29,7 +29,7 @@ enum FindIssueError: Error {
 }
 
 class API: JiraAPI {
-    
+
     init(credentials: String? = ProcessInfo.processInfo.environment["JIRA_CREDENTIALS"]) {
         self.credentials = credentials
     }
@@ -40,30 +40,21 @@ class API: JiraAPI {
     var cancellables: [AnyCancellable] = []
 
     func search(_ search: JQL) throws -> SearchResults {
-//        let tc = TerminalController(stream: stdoutStream)
-//        tc?.write("Searching Issues: ")
-//        tc?.write(search.rawValue, inColor: .cyan)
-//        tc?.endLine()
-
         return try _search(search)
     }
 
     func find(key: String) throws -> Issue {
-        
-        let jql = JQL(rawValue: "key = \(key)")
-        let tc = TerminalController(stream: stdoutStream)
-        tc?.write("Fetching Issue: ")
-        tc?.write(jql.rawValue, inColor: .cyan)
-        tc?.endLine()
 
-        let results = try self._search(jql)
+        let jql = JQL(rawValue: "key = \(key)")
         
+        let results = try self._search(jql)
+
         switch results.issues.count {
         case 1: return results.issues[0]
         case 0: throw FindIssueError.notFound
         default: throw FindIssueError.ambiguous(results.issues)
         }
-            
+
     }
 
     private func _search(
@@ -78,8 +69,13 @@ class API: JiraAPI {
             throw JiraError.custom("could build request")
         }
 
-        comps.queryItems = []
-        comps.queryItems?.append(URLQueryItem(name: "jql", value: search.rawValue))
+        terminal.write("Searching: ", debug: true)
+        terminal.writeLine(search.rawValue, inColor: .cyan, debug: true)
+
+        comps.queryItems = [
+            URLQueryItem(name: "jql", value: search.rawValue),
+            URLQueryItem(name: "maxResults", value: "500"),
+        ]
 
         guard var urlRequest = comps.url.map({ URLRequest(url: $0) }) else {
             throw JiraError.custom("could build request")
@@ -92,7 +88,8 @@ class API: JiraAPI {
         let base64LoginData = credentials.data(using: .utf8)!.base64EncodedString()
         urlRequest.setValue("Basic \(base64LoginData)", forHTTPHeaderField: "Authorization")
 
-        return try session
+        return
+            try session
             .dataTaskPublisher(for: urlRequest)
             .map(\.data)
             .decode(type: SearchResults.self, decoder: JSONDecoder())
@@ -102,9 +99,8 @@ class API: JiraAPI {
     }
 }
 
-
 extension Publisher {
-    
+
     func awaitSingle() throws -> Output {
 
         let group = DispatchGroup()
@@ -123,11 +119,11 @@ extension Publisher {
                 result = .success($0)
             }
         )
-        
+
         group.wait()
         cancellable?.cancel()
         cancellable = nil
-        
+
         return try result!.get()
     }
 }

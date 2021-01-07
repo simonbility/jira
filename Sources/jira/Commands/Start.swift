@@ -14,9 +14,10 @@ struct Start: ParsableCommand {
     func run() throws {
         let issue = try api.find(key: "DEV-\(number)")
         let branch = issue.branch
+        let base = try git.getCurrentBranch()
 
         try git.execute(
-            "flow", branch.type, "start", branch.name
+            "flow", branch.type, "start", branch.name, base
         )
     }
 

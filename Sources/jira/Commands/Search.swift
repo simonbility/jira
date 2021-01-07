@@ -8,26 +8,26 @@ enum SearchError: Error {
 }
 
 struct Search: ParsableCommand {
-    
+
     static var configuration = CommandConfiguration(
         abstract: "Search issues on jira"
     )
 
-    @Option(parsing:.upToNextOption)
+    @Option(parsing: .upToNextOption)
     var key: [String] = []
 
-    @Option(parsing:.singleValue)
+    @Option(parsing: .singleValue)
     var raw: [String] = []
-    
-    @Option(parsing:.upToNextOption)
+
+    @Option(parsing: .upToNextOption)
     var component: [String] = []
-    
-    @Option(parsing:.upToNextOption)
+
+    @Option(parsing: .upToNextOption)
     var status: [String] = []
-    
-    @Option(parsing:.singleValue)
+
+    @Option(parsing: .singleValue)
     var sprint: [String] = []
-    
+
     @Flag var currentSprint = false
     @Flag var open = false
     @Flag var closed = false
@@ -36,17 +36,16 @@ struct Search: ParsableCommand {
         var builder = raw
 
         if !key.isEmpty {
-            builder.append("key in (\(key.joined(separator: ", ")))")
+            builder.append("key in (\(commaSeparated: key))")
         }
-
         if !sprint.isEmpty {
-            builder.append("sprint in (\(sprint.joined(separator: ", ")))")
+            builder.append("sprint in (\(commaSeparated: sprint))")
         }
         if !component.isEmpty {
-            builder.append("component in (\(component.joined(separator: ", ")))")
+            builder.append("component in (\(commaSeparated: component))")
         }
         if !status.isEmpty {
-            builder.append("status in (\(status.map { "\"\($0)\"" }.joined(separator: ", ")))")
+            builder.append("status in (\(commaSeparated: status.map { "\"\($0)\"" }))")
         }
         if currentSprint {
             builder.append("sprint in openSprints()")
@@ -62,18 +61,34 @@ struct Search: ParsableCommand {
     }
 
     func run() throws {
-        
-        let terminalController = TerminalController(stream: stdoutStream)
-        
         guard !query.rawValue.isEmpty else {
             throw SearchError.queryEmpty
         }
         let results = try api.search(query)
-        
-        for issue in results.issues.sorted(by: { $0.fields.status < $1.fields.status }) {
-            issue.write(to: terminalController)
-            terminalController?.endLine()
+
+        var grouped: [String: [String: [Issue]]] = [:]
+
+        for issue in results.issues.sorted(by: comparing(\.fields.status)) {
+            grouped[issue.componentKey, default: [:]][issue.fields.issuetype.name, default: []]
+                .append(issue)
         }
+
+        for (component, componentGroup) in grouped.sorted(by: comparing(\.key)) {
+            if grouped.count > 1 {
+                terminal.writeLine("# \(component)", inColor: .red)
+            }
+            for (group, issues) in componentGroup.sorted(by: comparing(\.key)) {
+                if componentGroup.count > 1 {
+                    terminal.writeLine("## \(group)", inColor: .red)
+                }
+                for issue in issues {
+                    issue.write(to: terminal)
+                }
+
+                terminal.endLine()
+            }
+        }
+
     }
 
 }

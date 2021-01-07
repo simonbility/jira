@@ -45,7 +45,7 @@ enum Shell {
 extension TerminalController {
     
     func writeCompact(color: TerminalController.Color, _ output: String) {
-        if output.contains(where: { $0.isNewline }) || output.count > 60 {
+        if output.contains(where: \.isNewline) || output.count > 60 {
             endLine()
             write(output, inColor: color)
         } else {

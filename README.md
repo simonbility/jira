@@ -27,6 +27,4 @@ SUBCOMMANDS:
   start                   start new feature branch using ticket-number (without
                           prefix like DEV)
   current                 get current jira ticket from branch-name
-
-
 ```
