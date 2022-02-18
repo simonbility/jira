@@ -5,12 +5,12 @@ import PackageDescription
 
 let package = Package(
     name: "jira",
-    platforms: [.macOS(.v10_15)],
+    platforms: [.macOS(.v10_15), .iOS(.v12)],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-tools-support-core.git",
-        from: "0.1.12"),
+        from: "0.2.4"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "0.2.2"),
     ],
     targets: [

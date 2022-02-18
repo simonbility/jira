@@ -22,44 +22,6 @@ func comparing<Base, Value: Comparable>(
     }
 }
 
-struct JQL: Codable, ExpressibleByStringLiteral, ExpressibleByStringInterpolation {
-    let rawValue: String
-
-    init(rawValue: String) {
-        self.rawValue = rawValue
-    }
-
-    init(stringLiteral value: String) {
-        self.rawValue = value
-    }
-
-    func `in`(_ collection: JQL...) -> JQL {
-        return JQL(
-            rawValue: "\(rawValue) in (\(collection.map { $0.rawValue }.joined(separator: ", ")))"
-        )
-    }
-
-    func and(_ other: JQL) -> JQL {
-        return JQL(
-            rawValue: "\(rawValue) AND \(other.rawValue)"
-        )
-    }
-
-    func or(_ other: JQL) -> JQL {
-        return JQL(
-            rawValue: "\(rawValue) OR \(other.rawValue)"
-        )
-    }
-
-    static func & (lhs: JQL, rhs: JQL) -> JQL {
-        lhs.and(rhs)
-    }
-
-    static func | (lhs: JQL, rhs: JQL) -> JQL {
-        lhs.or(rhs)
-    }
-}
-
 struct SearchResults: Codable {
     let issues: [Issue]
 }
@@ -70,21 +32,21 @@ struct Issue: Codable {
         let `self`: URL
         let id: String
         let name: String
-        
+
         var description: String { name }
-        
+
         func hash(into hasher: inout Hasher) {
             hasher.combine(id)
         }
-        
+
         static func == (lhs: Issue.Component, rhs: Issue.Component) -> Bool {
             lhs.id == rhs.id
         }
-        
+
         static func < (lhs: Issue.Component, rhs: Issue.Component) -> Bool {
             lhs.id < rhs.id
         }
-        
+
     }
 
     struct IssueType: Codable, Hashable, Comparable {
@@ -93,18 +55,29 @@ struct Issue: Codable {
         let name: String
         let description: String
         
+        private var index: Int {
+            switch name.lowercased() {
+            case "story": return 0
+            case "improvement": return 1
+            case "operations": return 2
+            case "bug": return 3
+            case "defect": return 4
+            default: return 5
+            }
+        }
+
         func hash(into hasher: inout Hasher) {
             hasher.combine(id)
         }
-        
+
         static func == (lhs: Issue.IssueType, rhs: Issue.IssueType) -> Bool {
             lhs.id == rhs.id
         }
-        
+
         static func < (lhs: Issue.IssueType, rhs: Issue.IssueType) -> Bool {
-            lhs.id < rhs.id
+            (lhs.index, lhs.id) < (rhs.index, rhs.id)
         }
-        
+
     }
 
     struct Status: Codable, Comparable {
@@ -156,7 +129,10 @@ struct Issue: Codable {
     let `self`: URL
     let key: String
     let fields: Fields
-    
+    var isClosed: Bool {
+        fields.status.name.lowercased() == "closed"
+    }
+
     var componentKey: String {
         fields.components.sorted().map(\.name).joined(separator: ", ")
     }

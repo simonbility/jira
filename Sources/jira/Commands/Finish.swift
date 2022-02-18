@@ -23,18 +23,10 @@ struct Finish: ParsableCommand {
 
         issue.write(to: terminal)
 
-        let cmd = #"""
-        gh pr create \
-        --web \
-        --title "\#(issue.key): \#(issue.sanitizedSummary)" \
-        --body \(issue.key)
-        """#
-        
-        terminal.writeLine(cmd, inColor: .cyan)
-
-        let pasteBoard = NSPasteboard.general
-        pasteBoard.clearContents()
-        pasteBoard.setString(text, forType: .string)
+        try Shell.execute(arguments: [
+            "gh", "pr", "create", "--web",
+            "--title", "\"\(issue.key): \(issue.sanitizedSummary)\"",
+        ])
     }
 
 }

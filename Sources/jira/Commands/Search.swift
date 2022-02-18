@@ -28,6 +28,7 @@ struct Search: ParsableCommand {
     @Option(parsing: .singleValue)
     var sprint: [String] = []
 
+    @Flag var mine = false
     @Flag var currentSprint = false
     @Flag var open = false
     @Flag var closed = false
@@ -55,6 +56,9 @@ struct Search: ParsableCommand {
         }
         if closed {
             builder.append("status in (closed)")
+        }
+        if mine {
+            builder.append("assignee = currentUser()")
         }
 
         return JQL(rawValue: builder.joined(separator: " AND "))
