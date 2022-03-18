@@ -113,6 +113,10 @@ struct SprintReport: ParsableCommand {
             terminal.endLine()
         }
 
+        
+        terminal.endLine()
+        terminal.writeLine("---")
+        terminal.endLine()
     }
 
 }
