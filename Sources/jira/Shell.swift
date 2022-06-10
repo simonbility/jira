@@ -1,41 +1,48 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Simon Anreiter on 16.06.20.
 //
 
-import Foundation
-import TSCUtility
-import TSCBasic
 import ArgumentParser
+import Foundation
+import TSCBasic
+import TSCUtility
 
 enum Shell {
-    
+
     struct Errors: LocalizedError {
         let errorDescription: String?
     }
-    
-    static func execute(arguments: [String], quiet: Bool = false) throws -> String {
+
+    static func execute(arguments: [String], quiet: Bool = false, trim: Bool = true) throws -> String {
         let tc = quiet ? nil : TerminalController(stream: stdoutStream)
         tc?.write(arguments.joined(separator: " "), inColor: .cyan)
         let result = try Process.popen(arguments: arguments)
-        
+
         guard result.exitStatus == .terminated(code: 0) else {
-            let output = try result
+            let output =
+                try result
                 .utf8stderrOutput()
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            
+
             tc?.writeCompact(color: .red, output)
-            
+
             throw ExitCode.failure
         }
 
-        let output = try
-            result
+        
+        let output: String
+        
+        if trim {
+            output = try result
             .utf8Output()
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        
+        } else {
+            output = try result.utf8Output()
+        }
+
         tc?.writeCompact(color: .green, output)
 
         return output
@@ -43,7 +50,7 @@ enum Shell {
 }
 
 extension TerminalController {
-    
+
     func writeCompact(color: TerminalController.Color, _ output: String) {
         if output.contains(where: \.isNewline) || output.count > 60 {
             endLine()
@@ -54,7 +61,38 @@ extension TerminalController {
         }
         endLine()
     }
-    
+
+}
+
+extension String {
+    func shellEscape() -> String {
+        self.replacingOccurrences(of: "'", with: "\\'")
+    }
+}
+
+struct AsciArt {
+
+    let executable: String
+
+    init() throws {
+        executable = try Shell.execute(
+            arguments: ["which", "figlet"],
+            quiet: true
+        )
+    }
+
+    func getAsMarkdown(_ text: String) -> String {
+        let out = try! Shell.execute(arguments: [executable, text.shellEscape()], quiet: true, trim: false)
+
+        return "```\n\(out)\n```"
+
+    }
+
+    @discardableResult
+    func execute(arguments: [String], reason: String?) throws -> String {
+        return try Shell.execute(arguments: [executable] + arguments)
+    }
+
 }
 
 struct Git {
@@ -82,7 +120,7 @@ struct Git {
 
     @discardableResult
     func execute(arguments: [String], reason: String?) throws -> String {
-        return try Shell.execute(arguments:  [executable] + arguments)
+        return try Shell.execute(arguments: [executable] + arguments)
     }
 
     func getCurrentBranch() throws -> String {
@@ -93,16 +131,16 @@ struct Git {
             "HEAD"
         )
     }
-    
+
     func getIssueKeyFromBranch() throws -> String {
         let branch = try getCurrentBranch() as NSString
-            
+
         let range = branch.range(of: #"[A-Z]+-[0-9]+"#, options: .regularExpression)
-        
+
         guard range.location != NSNotFound else {
             throw Current.Errors.noTicketPatternFound
         }
-        
+
         return branch.substring(with: range)
     }
 }

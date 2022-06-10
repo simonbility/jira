@@ -9,6 +9,8 @@ struct SprintReport: ParsableCommand {
         abstract: "Generates a report about all Tickets in Sprint"
     )
 
+    private static let maxPageSize = 10
+
     func run() throws {
         let results = try api.search(
             JQL {
@@ -64,11 +66,27 @@ struct SprintReport: ParsableCommand {
         .sorted(
             by: comparing(\.key)
         )
+        
+        terminal.write(asciArt.getAsMarkdown(name))
+        terminal.endLine()
+        terminal.write("---")
+        terminal.endLine()
 
         for (issueType, groupedIssues) in groups {
             terminal.writeLine("## \(name) - \(issueType.name)", inColor: .red)
 
+            var counter = 0
+
             for aissues in groupedIssues {
+                if counter > Self.maxPageSize {
+                    counter = 0
+                    terminal.endLine()
+                    terminal.writeLine("---")
+                    terminal.endLine()
+
+                    terminal.writeLine("## \(name) - \(issueType.name)", inColor: .red)
+                }
+
                 let issues = aissues.distinct(by: \.key)
                 let issue = issues.first!
 
@@ -107,16 +125,17 @@ struct SprintReport: ParsableCommand {
                     terminal.write(")")
                 }
 
-                terminal.endLine()
-            }
+                counter += 1
 
+                terminal.endLine()
+                
+
+            }
+            
+            terminal.endLine()
+            terminal.writeLine("---")
             terminal.endLine()
         }
-
-        
-        terminal.endLine()
-        terminal.writeLine("---")
-        terminal.endLine()
     }
 
 }
