@@ -35,7 +35,7 @@ class API: JiraAPI {
     }
 
     let session = URLSession.shared
-    let base = URL(string: "https://imobility.atlassian.net/rest/api")!
+    let base = URL(string: "https://imobility.atlassian.net/rest/")!
     let credentials: String?
     var cancellables: [AnyCancellable] = []
 
@@ -43,10 +43,44 @@ class API: JiraAPI {
         return try _search(search)
     }
 
+    func activeSprint(boardID: String) throws -> Sprint {
+        guard
+            var comps = URLComponents(
+                url: base.appendingPathComponent("agile/1.0/board/\(boardID)/sprint"),
+                resolvingAgainstBaseURL: false
+            )
+        else {
+            throw JiraError.custom("could build request")
+        }
+
+        comps.queryItems = [
+            URLQueryItem(name: "state", value: "active")
+        ]
+
+        guard let urlRequest = comps.url.map({ URLRequest(url: $0) }) else {
+            throw JiraError.custom("could build request")
+        }
+
+        do {
+            let results =
+                try session
+                .dataTaskPublisher(for: try prepareRequest(urlRequest))
+                .map(\.data)
+                .decode(type: SprintSearchResults.self, decoder: JSONDecoder())
+                .mapError(JiraError.underlying)
+                .awaitSingle()
+            return results.values[0]
+        } catch {
+            print("\(error)")
+            throw error
+        }
+
+    }
+
     func find(key: String) throws -> Issue {
 
         let jql = JQL(rawValue: "key = \(key)")
-        
+
         let results = try self._search(jql)
 
         switch results.issues.count {
@@ -57,12 +91,25 @@ class API: JiraAPI {
 
     }
 
+    private func prepareRequest(_ request: URLRequest) throws -> URLRequest {
+        guard let credentials = self.credentials else {
+            throw JiraError.custom("JIRA_CREDENTIALS not set")
+        }
+        var urlRequest = request
+
+        urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        let base64LoginData = credentials.data(using: .utf8)!.base64EncodedString()
+        urlRequest.setValue("Basic \(base64LoginData)", forHTTPHeaderField: "Authorization")
+
+        return urlRequest
+    }
+
     private func _search(
         _ search: JQL
     ) throws -> SearchResults {
         guard
             var comps = URLComponents(
-                url: base.appendingPathComponent("/3/search"),
+                url: base.appendingPathComponent("api/3/search"),
                 resolvingAgainstBaseURL: false
             )
         else {
@@ -77,20 +124,13 @@ class API: JiraAPI {
             URLQueryItem(name: "maxResults", value: "500"),
         ]
 
-        guard var urlRequest = comps.url.map({ URLRequest(url: $0) }) else {
+        guard let urlRequest = comps.url.map({ URLRequest(url: $0) }) else {
             throw JiraError.custom("could build request")
         }
-        guard let credentials = self.credentials else {
-            throw JiraError.custom("JIRA_CREDENTIALS not set")
-        }
-
-        urlRequest.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        let base64LoginData = credentials.data(using: .utf8)!.base64EncodedString()
-        urlRequest.setValue("Basic \(base64LoginData)", forHTTPHeaderField: "Authorization")
 
         return
             try session
-            .dataTaskPublisher(for: urlRequest)
+            .dataTaskPublisher(for: try prepareRequest(urlRequest))
             .map(\.data)
             .decode(type: SearchResults.self, decoder: JSONDecoder())
             .mapError(JiraError.underlying)

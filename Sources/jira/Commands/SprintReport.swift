@@ -12,6 +12,9 @@ struct SprintReport: ParsableCommand {
     private static let maxPageSize = 10
 
     func run() throws {
+
+        let sprint = try api.activeSprint(boardID: "35")
+
         let results = try api.search(
             JQL {
                 "sprint in openSprints()"
@@ -47,10 +50,24 @@ struct SprintReport: ParsableCommand {
             }
         ).map { [$0, $1] }
 
+        printIntro(sprint: sprint)
         printGroup(name: "Backend", issues: backendTickets)
         printGroup(name: "Clients", allIssues: clientTickets)
         printGroup(name: "iOS", issues: iOSTickets)
         printGroup(name: "Android", issues: androidTickets)
+
+    }
+    
+    func printIntro(sprint: Sprint) {
+        terminal.writeLine("---")
+        terminal.writeLine("author: \(sprint.sanitizedName)")
+        terminal.writeLine("---")
+        
+        terminal.write(asciArt.getAsMarkdown(sprint.sanitizedName))
+        terminal.endLine()
+        terminal.writeLine("https://imobility.atlassian.net/jira/software/c/projects/DEV/boards/35/reports/burnup-chart?sprint=\(sprint.id)")
+        
+        terminal.writeLine("---")
 
     }
 
@@ -66,7 +83,7 @@ struct SprintReport: ParsableCommand {
         .sorted(
             by: comparing(\.key)
         )
-        
+
         terminal.write(asciArt.getAsMarkdown(name))
         terminal.endLine()
         terminal.write("---")
@@ -128,10 +145,9 @@ struct SprintReport: ParsableCommand {
                 counter += 1
 
                 terminal.endLine()
-                
 
             }
-            
+
             terminal.endLine()
             terminal.writeLine("---")
             terminal.endLine()

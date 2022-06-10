@@ -26,6 +26,31 @@ struct SearchResults: Codable {
     let issues: [Issue]
 }
 
+struct Sprint: Codable {
+    let id: Int
+    let name: String
+    let goal: String?
+
+    var sanitizedName: String {
+        let regex = try! NSRegularExpression(
+            pattern: #"\(.*\)"#,
+            options: NSRegularExpression.Options.caseInsensitive
+        )
+        let range = NSMakeRange(0, name.count)
+        return regex.stringByReplacingMatches(
+            in: name,
+            options: [],
+            range: range,
+            withTemplate: ""
+        ).trimmingCharacters(in: .whitespaces)
+
+    }
+}
+
+struct SprintSearchResults: Codable {
+    let values: [Sprint]
+}
+
 struct Issue: Codable {
 
     struct Component: Codable, Hashable, Comparable, CustomStringConvertible {
@@ -54,7 +79,7 @@ struct Issue: Codable {
         let id: String
         let name: String
         let description: String
-        
+
         private var index: Int {
             switch name.lowercased() {
             case "story": return 0
