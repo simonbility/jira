@@ -131,6 +131,16 @@ struct Git {
             "HEAD"
         )
     }
+    
+    func pushCurrentBranch() throws -> String {
+        let branchName = try getCurrentBranch()
+        return try execute(
+            "push",
+            "-–set-upstream",
+            "origin",
+            branchName
+        )
+    }
 
     func getIssueKeyFromBranch() throws -> String {
         let branch = try getCurrentBranch() as NSString
@@ -144,3 +154,5 @@ struct Git {
         return branch.substring(with: range)
     }
 }
+
+

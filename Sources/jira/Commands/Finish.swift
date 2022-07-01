@@ -13,19 +13,22 @@ struct Finish: AsyncParsableCommand {
     @Argument var number: String?
 
     func run() async throws {
+        
+        let config = try Configuration.load()
+        let api = API(config: config)
 
-        let key =
-            try number.map { "DEV-\($0)" }
-            ?? git.getIssueKeyFromBranch()
+        let key = try git.getIssueKeyFromBranch()
 
         let issue = try await api.find(key: key)
-        let text = "- \(issue.key): \(issue.sanitizedSummary)"
 
         issue.write(to: terminal)
+        
+        _ = try git.pushCurrentBranch()
 
-        try Shell.execute(arguments: [
+        _ = try Shell.execute(arguments: [
             "gh", "pr", "create", "--web",
-            "--title", "\"\(issue.key): \(issue.sanitizedSummary)\"",
+            "--title",
+            "\"\(issue.key): \(issue.sanitizedSummary)\"",
         ])
     }
 

@@ -22,6 +22,11 @@ func comparing<Base, Value: Comparable>(
     }
 }
 
+struct User: Codable {
+    let displayName: String
+    let accountId: String
+}
+
 struct SearchResults: Codable {
     let issues: [Issue]
 }
@@ -52,6 +57,19 @@ struct SprintSearchResults: Codable {
 }
 
 struct Issue: Codable {
+
+    static func findIssueKey(_ string: String, wholeMatch: Bool) -> String? {
+        
+        let regex = wholeMatch ? #"^[A-Z]+-[0-9]+$"# : #"[A-Z]+-[0-9]+"#
+        let nsString = string as NSString
+        let range = nsString.range(of: regex, options: .regularExpression)
+
+        guard range.location != NSNotFound else {
+            return nil
+        }
+
+        return nsString.substring(with: range)
+    }
 
     struct Component: Codable, Hashable, Comparable, CustomStringConvertible {
         let `self`: URL

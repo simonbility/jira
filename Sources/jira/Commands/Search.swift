@@ -65,6 +65,9 @@ struct Search: AsyncParsableCommand {
     }
 
     func run() async throws {
+        let config = try Configuration.load()
+        let api = API(config: config)
+        
         guard !query.rawValue.isEmpty else {
             throw SearchError.queryEmpty
         }

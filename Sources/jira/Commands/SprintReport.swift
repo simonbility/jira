@@ -13,7 +13,9 @@ struct SprintReport: AsyncParsableCommand {
  
     func run() async throws {
 
-        let sprint = try await api.activeSprint(boardID: "35")
+        let config = try Configuration.load()
+        let api = API(config: config)
+        let sprint = try await api.activeSprint(boardID: config.defaultBoard)
 
         let results = try await api.search(
             JQL {

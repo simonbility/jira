@@ -62,6 +62,9 @@ struct Current: AsyncParsableCommand {
 
     
     func run() async throws {
+        let config = try Configuration.load()
+        let api = API(config: config)
+        
         let key = try git.getIssueKeyFromBranch()
         let issue = try await api.find(key: key)
 
