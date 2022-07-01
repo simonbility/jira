@@ -3,7 +3,7 @@ import Foundation
 import TSCBasic
 import TSCUtility
 
-struct Start: ParsableCommand {
+struct Start: AsyncParsableCommand {
     
     static var configuration = CommandConfiguration(
         abstract: "start new feature branch using ticket-number (without prefix like DEV)"
@@ -11,8 +11,8 @@ struct Start: ParsableCommand {
 
     @Argument var number: String
 
-    func run() throws {
-        let issue = try api.find(key: "DEV-\(number)")
+    func run() async throws {
+        let issue = try await api.find(key: "DEV-\(number)")
         let branch = issue.branch
         let base = try git.getCurrentBranch()
 

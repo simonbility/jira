@@ -18,8 +18,8 @@ enum JiraError: Error {
 }
 
 protocol JiraAPI {
-    func search(_ search: JQL) throws -> SearchResults
-    func find(key: String) throws -> Issue
+    func search(_ search: JQL) async throws -> SearchResults
+    func find(key: String) async throws -> Issue
 }
 
 enum FindIssueError: Error {
@@ -39,49 +39,24 @@ class API: JiraAPI {
     let credentials: String?
     var cancellables: [AnyCancellable] = []
 
-    func search(_ search: JQL) throws -> SearchResults {
-        return try _search(search)
+    func search(_ search: JQL) async throws -> SearchResults {
+        return try await _search(search)
     }
 
-    func activeSprint(boardID: String) throws -> Sprint {
-        guard
-            var comps = URLComponents(
-                url: base.appendingPathComponent("agile/1.0/board/\(boardID)/sprint"),
-                resolvingAgainstBaseURL: false
-            )
-        else {
-            throw JiraError.custom("could build request")
-        }
-
-        comps.queryItems = [
-            URLQueryItem(name: "state", value: "active")
-        ]
-
-        guard let urlRequest = comps.url.map({ URLRequest(url: $0) }) else {
-            throw JiraError.custom("could build request")
-        }
-
-        do {
-            let results =
-                try session
-                .dataTaskPublisher(for: try prepareRequest(urlRequest))
-                .map(\.data)
-                .decode(type: SprintSearchResults.self, decoder: JSONDecoder())
-                .mapError(JiraError.underlying)
-                .awaitSingle()
-            return results.values[0]
-        } catch {
-            print("\(error)")
-            throw error
-        }
-
+    func activeSprint(boardID: String) async throws -> Sprint {
+        
+        return try await request(
+            as: SprintSearchResults.self,
+            path: "agile/1.0/board/\(boardID)/sprint",
+            query: ["state":"active"]
+        ).values[0]
     }
 
-    func find(key: String) throws -> Issue {
+    func find(key: String) async throws -> Issue {
 
         let jql = JQL(rawValue: "key = \(key)")
 
-        let results = try self._search(jql)
+        let results = try await self._search(jql)
 
         switch results.issues.count {
         case 1: return results.issues[0]
@@ -91,7 +66,7 @@ class API: JiraAPI {
 
     }
 
-    private func prepareRequest(_ request: URLRequest) throws -> URLRequest {
+    private func prepareRequest(_ request: URLRequest) async throws -> URLRequest {
         guard let credentials = self.credentials else {
             throw JiraError.custom("JIRA_CREDENTIALS not set")
         }
@@ -106,64 +81,53 @@ class API: JiraAPI {
 
     private func _search(
         _ search: JQL
-    ) throws -> SearchResults {
+    ) async throws -> SearchResults {
+        terminal.write("Searching: ", debug: true)
+        terminal.writeLine(search.rawValue, inColor: .cyan, debug: true)
+        
+        return try await self.request(
+            path: "api/3/search",
+            query: [
+                "jql": search.rawValue,
+                "maxResults": "500"
+            ]
+        )
+
+    }
+    
+    private func request<T: Decodable>(
+        as type: T.Type = T.self,
+        path: String,
+        query: [String: String]
+    ) async throws -> T {
         guard
             var comps = URLComponents(
-                url: base.appendingPathComponent("api/3/search"),
+                url: base.appendingPathComponent(path),
                 resolvingAgainstBaseURL: false
             )
         else {
             throw JiraError.custom("could build request")
         }
 
-        terminal.write("Searching: ", debug: true)
-        terminal.writeLine(search.rawValue, inColor: .cyan, debug: true)
-
-        comps.queryItems = [
-            URLQueryItem(name: "jql", value: search.rawValue),
-            URLQueryItem(name: "maxResults", value: "500"),
-        ]
+        comps.queryItems = query.map {
+            URLQueryItem(name: $0.key, value: $0.value)
+        }
 
         guard let urlRequest = comps.url.map({ URLRequest(url: $0) }) else {
             throw JiraError.custom("could build request")
         }
+        
+        
 
-        return
-            try session
-            .dataTaskPublisher(for: try prepareRequest(urlRequest))
-            .map(\.data)
-            .decode(type: SearchResults.self, decoder: JSONDecoder())
-            .mapError(JiraError.underlying)
-            .awaitSingle()
+        do {
+            let (data, _) = try await session.data(for: prepareRequest(urlRequest))
+        
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            
+            print("\(error)")
+            throw JiraError.underlying(error)
+        }
 
-    }
-}
-
-extension Publisher {
-
-    func awaitSingle() throws -> Output {
-
-        let group = DispatchGroup()
-        var result: Result<Output, Failure>!
-        group.enter()
-        var cancellable: Cancellable? = self.sink(
-            receiveCompletion: { comp in
-                switch comp {
-                case .failure(let e):
-                    result = .failure(e)
-                case .finished: break
-                }
-                group.leave()
-            },
-            receiveValue: {
-                result = .success($0)
-            }
-        )
-
-        group.wait()
-        cancellable?.cancel()
-        cancellable = nil
-
-        return try result!.get()
     }
 }

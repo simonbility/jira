@@ -7,7 +7,7 @@ enum SearchError: Error {
     case queryEmpty
 }
 
-struct Search: ParsableCommand {
+struct Search: AsyncParsableCommand {
 
     static var configuration = CommandConfiguration(
         abstract: "Search issues on jira"
@@ -64,11 +64,11 @@ struct Search: ParsableCommand {
         return JQL(rawValue: builder.joined(separator: " AND "))
     }
 
-    func run() throws {
+    func run() async throws {
         guard !query.rawValue.isEmpty else {
             throw SearchError.queryEmpty
         }
-        let results = try api.search(query)
+        let results = try await api.search(query)
 
         var grouped: [String: [String: [Issue]]] = [:]
 

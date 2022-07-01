@@ -3,19 +3,19 @@ import Foundation
 import TSCBasic
 import TSCUtility
 
-struct SprintReport: ParsableCommand {
+struct SprintReport: AsyncParsableCommand {
 
     static var configuration = CommandConfiguration(
         abstract: "Generates a report about all Tickets in Sprint"
     )
 
     private static let maxPageSize = 10
+ 
+    func run() async throws {
 
-    func run() throws {
+        let sprint = try await api.activeSprint(boardID: "35")
 
-        let sprint = try api.activeSprint(boardID: "35")
-
-        let results = try api.search(
+        let results = try await api.search(
             JQL {
                 "sprint in openSprints()"
                 "issuetype in (Bug,Defect,Story,Operations,Improvement)"

@@ -48,7 +48,7 @@ extension FindIssueError: LocalizedError {
     }
 }
 
-struct Current: ParsableCommand {
+struct Current: AsyncParsableCommand {
 
     enum Errors: String, LocalizedError {
         case noTicketPatternFound = "could not extract ticket from branch"
@@ -60,9 +60,10 @@ struct Current: ParsableCommand {
         abstract: "get current jira ticket from branch-name"
     )
 
-    func run() throws {
+    
+    func run() async throws {
         let key = try git.getIssueKeyFromBranch()
-        let issue = try api.find(key: key)
+        let issue = try await api.find(key: key)
 
         issue.write(to: terminal)
     }

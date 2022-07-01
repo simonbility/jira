@@ -3,10 +3,12 @@ import Foundation
 import TSCBasic
 import TSCUtility
 
-struct Jira: ParsableCommand {
+@main
+struct Jira: AsyncParsableCommand {
 
     static var configuration = CommandConfiguration(
-        subcommands: [Search.self, Start.self, Current.self, Finish.self, SprintReport.self]
+        subcommands: [Search.self, Start.self, Current.self, Finish.self, SprintReport.self],
+        defaultSubcommand: SprintReport.self
     )
 
 }
