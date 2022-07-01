@@ -136,7 +136,7 @@ struct Git {
         let branchName = try getCurrentBranch()
         return try execute(
             "push",
-            "-–set-upstream",
+            "--set-upstream",
             "origin",
             branchName
         )
