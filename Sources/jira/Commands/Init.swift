@@ -53,7 +53,14 @@ struct Init: AsyncParsableCommand {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         
-        try encoder.encode(config).write(to: location, options: .atomic)
+        try encoder.encode(config).write(
+            to: location,
+            options: [ .withoutOverwriting]
+        )
+        
+        terminal.writeLine(
+            "Config file created at \(location.relativePath)", inColor: .green
+        )
     }
     
 }
