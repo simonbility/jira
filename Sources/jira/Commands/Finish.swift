@@ -21,14 +21,39 @@ struct Finish: AsyncParsableCommand {
 
         let issue = try await api.find(key: key)
 
+        if issue.isBugOrDefect && issue.loggedTime == 0 {
+            let time = terminal.askChecked(
+                "Time Spent",
+                transform: { $0 }
+            )
+            try await api.logTime(issue, time: time)
+        }
+        
+        if let cmd = config.getFixVersionCommand {
+            
+            let version = try Shell.execute(arguments: [cmd])
+            let versionComponents = version.split(separator: ".")
+            
+            let major = versionComponents[0]
+            let minor = versionComponents[1]
+            
+            let versionName = "Clients \(major).\(minor)"
+            
+            try await api.applyIssueUpdate(issue.key) { update in
+                update.set(
+                    "fixVersions",
+                    value: [["name": .string(versionName)]]
+                )
+            }
+        }
+        
         issue.write(to: terminal)
         
         _ = try git.pushCurrentBranch()
-
         _ = try Shell.execute(arguments: [
             "gh", "pr", "create", "--web",
             "--title",
-            "\"\(issue.key): \(issue.sanitizedSummary)\"",
+            "\(issue.key): \(issue.sanitizedSummary)",
         ])
     }
 

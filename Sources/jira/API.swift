@@ -127,6 +127,17 @@ class API: JiraAPI {
             path: "/api/3/issue/\(issue.key)/assignee")
     }
     
+    
+    func applyIssueUpdate(
+        _ key: String,
+        apply: (inout IssueUpdates) -> Void
+    ) async throws {
+        var updates = IssueUpdates(update: [:])
+        apply(&updates)
+        
+        try await sendPut(updates, path: "api/3/issue/\(key)")
+    }
+    
     func moveIssuesToSprint(
         sprint: Sprint,
         issues: [Issue]
@@ -143,6 +154,19 @@ class API: JiraAPI {
         }
         
         try await self.sendPost(Payload(issues: issues.map(\.key)), path: "agile/1.0/sprint/\(sprint.id)/issue")
+    }
+    
+    func logTime(_ issue: Issue, time: String) async throws {
+   
+        struct Payload: Encodable {
+            let timeSpent: String
+        }
+        
+        if terminal.isInteractive {
+            terminal.writeLine("Logging Time: \(time)")
+        }
+        
+        try await self.sendPost(Payload(timeSpent: time), path:  "api/2/issue/\(issue.key)/worklog")
     }
     
     private func sendGet<T: Decodable>(
@@ -167,11 +191,15 @@ class API: JiraAPI {
             throw JiraError.custom("could build request")
         }
         
+        var d: Data? = nil
         do {
             let (data, _) = try await session.data(for: prepareRequest(urlRequest))
-            
+            d = data
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
+            if let d = d {
+                print(String(data: d, encoding: .utf8)!)
+            }
             print("\(error)")
             throw JiraError.underlying(error)
         }
@@ -201,8 +229,12 @@ class API: JiraAPI {
         urlRequest.httpMethod = method
         urlRequest.httpBody = try encoder.encode(payload)
         
+        var data: Data? = nil
+        
         do {
-            let (_, response) = try await session.data(for: prepareRequest(urlRequest))
+            let (d, response) = try await session.data(for: prepareRequest(urlRequest))
+            
+            data = d
             
             let statusCode = (response as! HTTPURLResponse).statusCode
             
@@ -211,6 +243,9 @@ class API: JiraAPI {
             default: throw JiraError.custom("Unexpected StatusCode \(statusCode)")
             }
         } catch {
+            if let d = data {
+                print(String(data: d, encoding: .utf8)!)
+            }
             print("\(error)")
             throw JiraError.underlying(error)
         }

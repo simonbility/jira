@@ -57,6 +57,16 @@ struct SprintSearchResults: Codable {
 }
 
 struct Issue: Codable {
+    
+    var loggedTime: Int {
+        fields.progress?.progress ?? 0
+    }
+    
+    var isBugOrDefect: Bool {
+        let t = fields.issuetype.name.lowercased()
+        
+        return t == "bug" || t == "defect"
+    }
 
     static func findIssueKey(_ string: String, wholeMatch: Bool) -> String? {
         
@@ -209,12 +219,26 @@ struct Issue: Codable {
         return bugTypes.contains(self.fields.issuetype.name.lowercased())
             ? "bugfix" : "feature"
     }
+    var fixVersions: [FixVersion] {
+        fields.fixVersions ?? []
+    }
 
     struct Fields: Codable {
         let summary: String
         let components: [Component]
+        let progress: Progress?
         let issuetype: IssueType
         let status: Status
+        let fixVersions: [FixVersion]?
+        
+
+        struct Progress: Codable {
+            let progress: Int
+        }
+    }
+    
+    struct FixVersion: Codable {
+        let name: String
     }
 
     func write(to console: Console) {

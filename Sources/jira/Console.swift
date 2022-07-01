@@ -73,4 +73,26 @@ struct Console {
             }
         }
     }
+    
+    
+    func askChecked<Value>(
+        _ question: String,
+        default defaultValue: Value? = nil,
+        transformRequiring transform: (String) -> Value?
+    ) -> Value {
+        while true {
+            write("\(question):")
+            let value = readLine(strippingNewline: true)
+
+            if let value = value {
+                if let defaultValue = defaultValue, value.isEmpty {
+                    return defaultValue
+                }
+                
+                if let value = transform(value) {
+                    return value
+                }
+            }
+        }
+    }
 }

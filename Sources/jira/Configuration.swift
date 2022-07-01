@@ -6,6 +6,7 @@ struct Configuration: Codable {
     let defaultBoard: String
     let accountID: String
     let defaultComponent: String?
+    let getFixVersionCommand: String?
 
     static let defaultBaseURL = URL(string: "https://imobility.atlassian.net/rest/")!
     static let defaultIssuePrefix = "DEV"

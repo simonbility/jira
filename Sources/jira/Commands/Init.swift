@@ -45,7 +45,8 @@ struct Init: AsyncParsableCommand {
             issuePrefix: issuePrefix,
             defaultBoard: defaultBoard,
             accountID: user.accountId,
-            defaultComponent: defaultComponent
+            defaultComponent: defaultComponent,
+            getFixVersionCommand: nil
         )
         
         let location = global ? Configuration.userConfigURL : Configuration.currentConfigURL
