@@ -12,7 +12,7 @@ struct Init: AsyncParsableCommand {
         completion: .file()
     )
     var getFixVersionCommand: String?
-    var defaultFixVersion: String?
+    @Option var defaultFixVersion: String?
     
     @Flag var global = false
 
