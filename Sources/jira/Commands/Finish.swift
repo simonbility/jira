@@ -32,17 +32,11 @@ struct Finish: AsyncParsableCommand {
         if let cmd = config.getFixVersionCommand {
             
             let version = try Shell.execute(arguments: [cmd])
-            let versionComponents = version.split(separator: ".")
-            
-            let major = versionComponents[0]
-            let minor = versionComponents[1]
-            
-            let versionName = "Clients \(major).\(minor)"
             
             try await api.applyIssueUpdate(issue.key) { update in
                 update.set(
                     "fixVersions",
-                    value: [["name": .string(versionName)]]
+                    value: [["name": .string(version)]]
                 )
             }
         }
