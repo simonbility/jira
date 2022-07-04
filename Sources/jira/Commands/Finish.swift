@@ -37,10 +37,17 @@ struct Finish: AsyncParsableCommand {
             try await api.logTime(issue, time: time)
         }
         
+        let fixVersion: String?
+        
         if let cmd = config.getFixVersionCommand {
-            
-            let version = try Shell.execute(arguments: [cmd])
-            
+            fixVersion = try Shell.execute(arguments: [cmd])
+        } else if let defaultVersion = config.defaultFixVersion {
+            fixVersion = defaultVersion
+        } else {
+            fixVersion = nil
+        }
+        
+        if let version = fixVersion {
             try await api.applyIssueUpdate(issue.key) { update in
                 update.set(
                     "fixVersions",

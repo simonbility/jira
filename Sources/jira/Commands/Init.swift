@@ -12,6 +12,7 @@ struct Init: AsyncParsableCommand {
         completion: .file()
     )
     var getFixVersionCommand: String?
+    var defaultFixVersion: String?
     
     @Flag var global = false
 
@@ -39,7 +40,8 @@ struct Init: AsyncParsableCommand {
             issuePrefix: issuePrefix,
             defaultBoard: defaultBoard,
             defaultComponent: defaultComponent,
-            getFixVersionCommand: nil
+            getFixVersionCommand: getFixVersionCommand,
+            defaultFixVersion: defaultFixVersion
         )
         
         let location = global ? Configuration.userConfigURL : Configuration.currentConfigURL
