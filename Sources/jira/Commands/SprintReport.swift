@@ -9,7 +9,7 @@ struct SprintReport: AsyncParsableCommand {
         abstract: "Generates a report about all Tickets in Sprint"
     )
 
-    private static let maxPageSize = 10
+    private static let maxPageSize = 20
  
     func run() async throws {
 

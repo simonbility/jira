@@ -16,7 +16,23 @@ enum Shell {
         let errorDescription: String?
     }
 
-    static func execute(arguments: [String], quiet: Bool = false, trim: Bool = true) throws -> String {
+    static func ensureInstalled(_ tool: String, message: String) throws {
+        if !isInstalled(tool) {
+            throw CleanExit.message(message)
+        }
+    }
+
+    static func isInstalled(_ tool: String) -> Bool {
+        let executable = try? Shell.execute(
+            arguments: ["which", tool],
+            quiet: true
+        )
+        return executable != nil
+    }
+
+    static func execute(arguments: [String], quiet: Bool = false, trim: Bool = true) throws
+        -> String
+    {
         let tc = quiet ? nil : TerminalController(stream: stdoutStream)
         tc?.write(arguments.joined(separator: " "), inColor: .cyan)
         let result = try Process.popen(arguments: arguments)
@@ -32,13 +48,13 @@ enum Shell {
             throw ExitCode.failure
         }
 
-        
         let output: String
-        
+
         if trim {
-            output = try result
-            .utf8Output()
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+            output =
+                try result
+                .utf8Output()
+                .trimmingCharacters(in: .whitespacesAndNewlines)
         } else {
             output = try result.utf8Output()
         }
@@ -64,12 +80,6 @@ extension TerminalController {
 
 }
 
-extension String {
-    func shellEscape() -> String {
-        self.replacingOccurrences(of: "'", with: "\\'")
-    }
-}
-
 struct AsciArt {
 
     let executable: String
@@ -82,7 +92,11 @@ struct AsciArt {
     }
 
     func getAsMarkdown(_ text: String) -> String {
-        let out = try! Shell.execute(arguments: [executable, text.shellEscape()], quiet: true, trim: false)
+        let out = try! Shell.execute(
+            arguments: [executable, text.spm_shellEscaped()],
+            quiet: true,
+            trim: false
+        )
 
         return "```\n\(out)\n```"
 
@@ -131,7 +145,7 @@ struct Git {
             "HEAD"
         )
     }
-    
+
     func pushCurrentBranch() throws -> String {
         let branchName = try getCurrentBranch()
         return try execute(
@@ -154,5 +168,3 @@ struct Git {
         return branch.substring(with: range)
     }
 }
-
-

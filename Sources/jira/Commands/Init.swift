@@ -2,49 +2,42 @@ import ArgumentParser
 import Foundation
 
 struct Init: AsyncParsableCommand {
-    
-    @Option var baseURL: String?
-    @Option var issuePrefix: String?
-    @Option var defaultBoard: String?
-    @Option var userName: String?
+
+    @Option var baseURL: String = Configuration.defaultBaseURL.absoluteString
+    @Option var issuePrefix: String = Configuration.defaultIssuePrefix
+    @Option var defaultBoard: String = Configuration.defaultDefaultBoard
     @Option var defaultComponent: String?
+    @Option(
+        help: ArgumentHelp("path to a script providing the current fix-version"),
+        completion: .file()
+    )
+    var getFixVersionCommand: String?
     
     @Flag var global = false
 
     func run() async throws {
         guard ProcessInfo.processInfo.environment["JIRA_CREDENTIALS"] != nil else {
-            throw ValidationError("Please set JIRA_CREDENTIALS environment variable")
+            throw CleanExit.message("Please set JIRA_CREDENTIALS environment variable")
         }
         
-        let baseURL = terminal.askChecked(
-            "API-BaseURL default: \(Configuration.defaultBaseURL.absoluteString))",
-            default: Configuration.defaultBaseURL,
-            transform: URL.parse(string:)
-        )
-        let issuePrefix = terminal.askChecked(
-            "IssueKey default: \(Configuration.defaultIssuePrefix)",
-            default: Configuration.defaultIssuePrefix,
-            transform: { $0 }
-        )
-        let defaultComponent: String? = terminal.askChecked(
-            "Default Component",
-            default: nil,
-            transform: { $0.isEmpty ? nil : $0 }
-        )
-        let defaultBoard = terminal.askChecked(
-            "DefaultBoard default: \(Configuration.defaultDefaultBoard)",
-            default: Configuration.defaultDefaultBoard,
-            transform: { $0 }
-        )
-
-        let tempAPI = API(base: baseURL)
-        let user = try await tempAPI.getCurrentUser()
+        if !Shell.isInstalled("gh") {
+            terminal.writeLine("gh is not installed", inColor: .yellow)
+            terminal.writeLine("This is needed to create PRs")
+            terminal.writeLine("Install with 'brew install gh' (https://cli.github.com)")
+        }
+        
+        if !Shell.isInstalled("figlet") {
+            terminal.writeLine("figlet is not installed", inColor: .yellow)
+            terminal.writeLine("This is used to create the AsciArt in SprintReports")
+            terminal.writeLine("Install with 'brew install figlet' (http://www.figlet.org)")
+        }
+        
+        let baseURL = try URL.parse(string: baseURL)
         
         let config = Configuration(
             baseURL: baseURL,
             issuePrefix: issuePrefix,
             defaultBoard: defaultBoard,
-            accountID: user.accountId,
             defaultComponent: defaultComponent,
             getFixVersionCommand: nil
         )

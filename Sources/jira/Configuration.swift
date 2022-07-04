@@ -1,10 +1,11 @@
 import Foundation
+import ArgumentParser
 
 struct Configuration: Codable {
     let baseURL: URL
     let issuePrefix: String
     let defaultBoard: String
-    let accountID: String
+//    let accountID: String
     let defaultComponent: String?
     let getFixVersionCommand: String?
 
@@ -24,15 +25,14 @@ struct Configuration: Codable {
         ]
 
         for url in candidates {
-            if FileManager.default.fileExists(atPath: url.path) {
+            var isDirectory: ObjCBool = false
+            if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory), !isDirectory.boolValue {
                 let data = try Data(contentsOf: url)
                 return try JSONDecoder().decode(Configuration.self, from: data)
             }
         }
 
-        throw ConfigFileNotFound()
+        throw CleanExit.message("No config file found run 'jira init' to create one")
 
     }
 }
-
-struct ConfigFileNotFound: Error {}

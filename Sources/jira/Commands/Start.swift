@@ -6,10 +6,17 @@ import TSCUtility
 struct Start: AsyncParsableCommand {
     
     static var configuration = CommandConfiguration(
-        abstract: "start new feature branch using ticket-number (without prefix like DEV)"
+        abstract: "start new feature branch using ticket-number",
+        discussion: """
+        This will:
+        * create a new branch
+        * move the ticket into the current sprint
+        * assign the ticket to you (or the account-id specified via assign-to)
+        """
     )
 
     @Argument var number: String
+    @Argument var assignTo: String?
 
     func run() async throws {
         let config = try Configuration.load()
@@ -27,14 +34,20 @@ struct Start: AsyncParsableCommand {
         let issue = try await api.find(key: sanitizedNumber)
         let currentSprint = try await api.activeSprint(boardID: config.defaultBoard)
         
+        let accountID: String
+        
+        if let assignTo = assignTo {
+            accountID = assignTo
+        } else {
+            accountID = try await api.getCurrentUser().accountId
+        }
         try await api.moveIssuesToSprint(sprint: currentSprint, issues: [issue])
-        try await api.assignIssue(issue, userID: config.accountID)
+        try await api.assignIssue(issue, userID: accountID)
         
         let branch = issue.branch
-        let base = try git.getCurrentBranch()
 
         try git.execute(
-            "flow", branch.type, "start", branch.name, base
+            "checkout", "-b", "\(branch.type)/\(branch.name)"
         )
     }
 

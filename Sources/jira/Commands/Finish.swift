@@ -7,7 +7,15 @@ import TSCUtility
 struct Finish: AsyncParsableCommand {
 
     static var configuration = CommandConfiguration(
-        abstract: "start new feature branch using ticket-number (without prefix like DEV)"
+        discussion: """
+        If no ticket id is provided it will try to extract it from the current branch
+        
+        This will:
+        * Push the Branch
+        * Create a PullRequest
+        * For Bugs and Defects ask you to log time
+        * Update the FixVersion (if "getFixVersionCommand" is set in your config)
+        """
     )
 
     @Argument var number: String?
