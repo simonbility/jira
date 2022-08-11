@@ -19,6 +19,7 @@ struct Finish: AsyncParsableCommand {
     )
 
     @Argument var number: String?
+    @Option var base: String?
 
     func run() async throws {
         
@@ -58,12 +59,17 @@ struct Finish: AsyncParsableCommand {
         
         issue.write(to: terminal)
         
-        _ = try git.pushCurrentBranch()
-        _ = try Shell.execute(arguments: [
+        var arguments = [
             "gh", "pr", "create", "--web",
             "--title",
             "\(issue.key): \(issue.sanitizedSummary)",
-        ])
+        ]
+        
+        if let base = base {
+            arguments += ["--base", base]
+        }
+        _ = try git.pushCurrentBranch()
+        _ = try Shell.execute(arguments: arguments)
     }
 
 }
