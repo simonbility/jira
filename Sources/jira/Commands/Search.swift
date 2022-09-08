@@ -8,7 +8,6 @@ enum SearchError: Error {
 }
 
 struct Search: AsyncParsableCommand {
-
     static var configuration = CommandConfiguration(
         abstract: "Search issues on jira"
     )
@@ -67,7 +66,7 @@ struct Search: AsyncParsableCommand {
     func run() async throws {
         let config = try Configuration.load()
         let api = API(config: config)
-        
+
         guard !query.rawValue.isEmpty else {
             throw SearchError.queryEmpty
         }
@@ -80,22 +79,31 @@ struct Search: AsyncParsableCommand {
                 .append(issue)
         }
 
-        for (component, componentGroup) in grouped.sorted(by: comparing(\.key)) {
-            if grouped.count > 1 {
-                terminal.writeLine("# \(component)", inColor: .red)
-            }
-            for (group, issues) in componentGroup.sorted(by: comparing(\.key)) {
-                if componentGroup.count > 1 {
-                    terminal.writeLine("## \(group)", inColor: .red)
-                }
-                for issue in issues {
-                    issue.write(to: terminal)
-                }
-
+        if !terminal.isInteractive {
+            for issue in results.issues {
+                terminal.write(issue.key)
+                terminal.write("\t")
+                terminal.write(issue.fields.status.name)
+                terminal.write("\t")
+                terminal.write(issue.sanitizedSummary)
                 terminal.endLine()
             }
+        } else {
+            for (component, componentGroup) in grouped.sorted(by: comparing(\.key)) {
+                if grouped.count > 1 {
+                    terminal.writeLine("# \(component)", inColor: .red)
+                }
+                for (group, issues) in componentGroup.sorted(by: comparing(\.key)) {
+                    if componentGroup.count > 1 {
+                        terminal.writeLine("## \(group)", inColor: .red)
+                    }
+                    for issue in issues {
+                        issue.write(to: terminal)
+                    }
+
+                    terminal.endLine()
+                }
+            }
         }
-
     }
-
 }
