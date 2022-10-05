@@ -1,0 +1,29 @@
+--acronyms ID,URL,UUID
+--fractiongrouping enabled
+--hexliteralcase lowercase 
+--ifdef no-indent 
+--nospaceoperators ...,..< 
+--octalgrouping none 
+--patternlet inline
+--extensionacl on-declarations
+
+--header strip
+
+--wraparguments before-first
+--wrapcollections before-first
+
+--typeattributes prev-line
+
+--enable leadingDelimiters
+--enable blankLinesBetweenScopes
+--enable consecutiveBlankLines
+
+--swiftversion 5.6
+
+--maxwidth 100
+
+
+--disable redundantSelf
+--disable redundantFileprivate
+--disable preferKeyPath
+--disable unusedArguments

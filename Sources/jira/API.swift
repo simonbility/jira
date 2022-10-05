@@ -1,10 +1,3 @@
-//
-//  File.swift
-//
-//
-//  Created by Simon Anreiter on 23.05.20.
-//
-
 import ArgumentParser
 import Combine
 import Foundation
@@ -29,15 +22,14 @@ enum FindIssueError: Error {
 }
 
 class API: JiraAPI {
-
     init(
         config: Configuration,
         credentials: String? = ProcessInfo.processInfo.environment["JIRA_CREDENTIALS"]
     ) {
-        self.base = config.baseURL
+        base = config.baseURL
         self.credentials = credentials
     }
- 
+
     init(
         credentials: String? = ProcessInfo.processInfo.environment["JIRA_CREDENTIALS"],
         base: URL
@@ -50,40 +42,37 @@ class API: JiraAPI {
     let base: URL
     let credentials: String?
     var cancellables: [AnyCancellable] = []
-    
-    
+
     func getCurrentUser() async throws -> User {
-        return try await sendGet(path: "api/2/myself", query: [:])
+        try await sendGet(path: "rest/api/2/myself", query: [:])
     }
 
     func search(_ search: JQL) async throws -> SearchResults {
-        return try await _search(search)
+        try await _search(search)
     }
 
     func activeSprint(boardID: String) async throws -> Sprint {
-        return try await sendGet(
+        try await sendGet(
             as: SprintSearchResults.self,
-            path: "agile/1.0/board/\(boardID)/sprint",
-            query: ["state":"active"]
+            path: "rest/agile/1.0/board/\(boardID)/sprint",
+            query: ["state": "active"]
         ).values[0]
     }
 
     func find(key: String) async throws -> Issue {
-
         let jql = JQL(rawValue: "key = \(key)")
 
-        let results = try await self._search(jql)
+        let results = try await _search(jql)
 
         switch results.issues.count {
         case 1: return results.issues[0]
         case 0: throw FindIssueError.notFound
         default: throw FindIssueError.ambiguous(results.issues)
         }
-
     }
 
     private func prepareRequest(_ request: URLRequest) async throws -> URLRequest {
-        guard let credentials = self.credentials else {
+        guard let credentials = credentials else {
             throw JiraError.custom("JIRA_CREDENTIALS not set")
         }
         var urlRequest = request
@@ -100,44 +89,42 @@ class API: JiraAPI {
     ) async throws -> SearchResults {
         terminal.write("Searching: ", debug: true)
         terminal.writeLine(search.rawValue, inColor: .cyan, debug: true)
-        
-        return try await self.sendGet(
-            path: "api/3/search",
+
+        return try await sendGet(
+            path: "rest/api/3/search",
             query: [
                 "jql": search.rawValue,
-                "maxResults": "500"
+                "maxResults": "500",
             ]
         )
-
     }
-    
+
     func assignIssue(_ issue: Issue, userID: String) async throws {
         struct Payload: Encodable {
             let accountId: String
         }
-        
+
         if terminal.isInteractive {
             terminal.writeLine("Assigning to you")
             issue.write(to: terminal)
-        
         }
-        
-        try await self.sendPut(
+
+        try await sendPut(
             Payload(accountId: userID),
-            path: "/api/3/issue/\(issue.key)/assignee")
+            path: "rest/api/3/issue/\(issue.key)/assignee"
+        )
     }
-    
-    
+
     func applyIssueUpdate(
         _ key: String,
         apply: (inout IssueUpdates) -> Void
     ) async throws {
         var updates = IssueUpdates(update: [:])
         apply(&updates)
-        
-        try await sendPut(updates, path: "api/3/issue/\(key)")
+
+        try await sendPut(updates, path: "rest/api/3/issue/\(key)")
     }
-    
+
     func moveIssuesToSprint(
         sprint: Sprint,
         issues: [Issue]
@@ -145,32 +132,34 @@ class API: JiraAPI {
         struct Payload: Encodable {
             let issues: [String]
         }
-        
+
         if terminal.isInteractive {
             terminal.writeLine("Moving to Sprint: \(sprint.sanitizedName)")
             for issue in issues {
                 issue.write(to: terminal)
             }
         }
-        
-        try await self.sendPost(Payload(issues: issues.map(\.key)), path: "agile/1.0/sprint/\(sprint.id)/issue")
+
+        try await sendPost(
+            Payload(issues: issues.map(\.key)),
+            path: "rest/agile/1.0/sprint/\(sprint.id)/issue"
+        )
     }
-    
+
     func logTime(_ issue: Issue, time: String) async throws {
-   
         struct Payload: Encodable {
             let timeSpent: String
         }
-        
+
         if terminal.isInteractive {
             terminal.writeLine("Logging Time: \(time)")
         }
-        
-        try await self.sendPost(Payload(timeSpent: time), path:  "api/2/issue/\(issue.key)/worklog")
+
+        try await sendPost(Payload(timeSpent: time), path: "rest/api/2/issue/\(issue.key)/worklog")
     }
-    
+
     private func sendGet<T: Decodable>(
-        as type: T.Type = T.self,
+        as _: T.Type = T.self,
         path: String,
         query: [String: String]
     ) async throws -> T {
@@ -190,11 +179,15 @@ class API: JiraAPI {
         guard let urlRequest = comps.url.map({ URLRequest(url: $0) }) else {
             throw JiraError.custom("could build request")
         }
-        
-        var d: Data? = nil
+
+        var d: Data?
         do {
             let (data, _) = try await session.data(for: prepareRequest(urlRequest))
             d = data
+
+//            if let d = d {
+//                print(String(data: d, encoding: .utf8)!)
+//            }
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
             if let d = d {
@@ -203,10 +196,8 @@ class API: JiraAPI {
             print("\(error)")
             throw JiraError.underlying(error)
         }
-
     }
-    
-    
+
     private func sendPayload<T: Encodable>(
         _ payload: T,
         method: String,
@@ -224,20 +215,20 @@ class API: JiraAPI {
         guard var urlRequest = comps.url.map({ URLRequest(url: $0) }) else {
             throw JiraError.custom("could build request")
         }
-        
+
         let encoder = JSONEncoder()
         urlRequest.httpMethod = method
         urlRequest.httpBody = try encoder.encode(payload)
-        
-        var data: Data? = nil
-        
+
+        var data: Data?
+
         do {
             let (d, response) = try await session.data(for: prepareRequest(urlRequest))
-            
+
             data = d
-            
+
             let statusCode = (response as! HTTPURLResponse).statusCode
-            
+
             switch statusCode {
             case 200...399: break
             default: throw JiraError.custom("Unexpected StatusCode \(statusCode)")
@@ -249,21 +240,19 @@ class API: JiraAPI {
             print("\(error)")
             throw JiraError.underlying(error)
         }
-
     }
-    
-    
+
     private func sendPost<T: Encodable>(
         _ payload: T,
         path: String
     ) async throws {
         try await sendPayload(payload, method: "POST", path: path)
     }
-    
+
     private func sendPut<T: Encodable>(
         _ payload: T,
         path: String
     ) async throws {
-       try await sendPayload(payload, method: "PUT", path: path)
+        try await sendPayload(payload, method: "PUT", path: path)
     }
 }

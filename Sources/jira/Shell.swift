@@ -1,17 +1,9 @@
-//
-//  File.swift
-//
-//
-//  Created by Simon Anreiter on 16.06.20.
-//
-
 import ArgumentParser
 import Foundation
 import TSCBasic
 import TSCUtility
 
 enum Shell {
-
     struct Errors: LocalizedError {
         let errorDescription: String?
     }
@@ -40,8 +32,8 @@ enum Shell {
         guard result.exitStatus == .terminated(code: 0) else {
             let output =
                 try result
-                .utf8stderrOutput()
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .utf8stderrOutput()
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
 
             tc?.writeCompact(color: .red, output)
 
@@ -53,8 +45,8 @@ enum Shell {
         if trim {
             output =
                 try result
-                .utf8Output()
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .utf8Output()
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
         } else {
             output = try result.utf8Output()
         }
@@ -66,7 +58,6 @@ enum Shell {
 }
 
 extension TerminalController {
-
     func writeCompact(color: TerminalController.Color, _ output: String) {
         if output.contains(where: \.isNewline) || output.count > 60 {
             endLine()
@@ -77,11 +68,9 @@ extension TerminalController {
         }
         endLine()
     }
-
 }
 
 struct AsciArt {
-
     let executable: String
 
     init() throws {
@@ -99,14 +88,12 @@ struct AsciArt {
         )
 
         return "```\n\(out)\n```"
-
     }
 
     @discardableResult
-    func execute(arguments: [String], reason: String?) throws -> String {
-        return try Shell.execute(arguments: [executable] + arguments)
+    func execute(arguments: [String], reason _: String?) throws -> String {
+        try Shell.execute(arguments: [executable] + arguments)
     }
-
 }
 
 struct Git {
@@ -129,16 +116,16 @@ struct Git {
 
     @discardableResult
     func execute(reason: String? = nil, _ args: String...) throws -> String {
-        return try execute(arguments: args, reason: reason)
+        try execute(arguments: args, reason: reason)
     }
 
     @discardableResult
-    func execute(arguments: [String], reason: String?) throws -> String {
-        return try Shell.execute(arguments: [executable] + arguments)
+    func execute(arguments: [String], reason _: String?) throws -> String {
+        try Shell.execute(arguments: [executable] + arguments)
     }
 
     func getCurrentBranch() throws -> String {
-        return try execute(
+        try execute(
             reason: "Get Branch Name",
             "rev-parse",
             "--abbrev-ref",

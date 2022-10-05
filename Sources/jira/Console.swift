@@ -1,18 +1,11 @@
-//
-//  File.swift
-//
-//
-//  Created by Simon Anreiter on 07.01.21.
-//
-
 import Foundation
 import TSCBasic
 
 struct Console {
     let terminal = TerminalController(stream: stdoutStream)
-    
+
     var isInteractive: Bool {
-        return terminal != nil
+        terminal != nil
     }
 
     func writeLine(
@@ -49,7 +42,7 @@ struct Console {
     }
 
     func ask(_ question: String) -> String {
-        return askChecked(question, transform: { $0 })
+        askChecked(question, transform: { $0 })
     }
 
     func askChecked<Value>(
@@ -73,8 +66,7 @@ struct Console {
             }
         }
     }
-    
-    
+
     func askChecked<Value>(
         _ question: String,
         default defaultValue: Value? = nil,
@@ -88,7 +80,7 @@ struct Console {
                 if let defaultValue = defaultValue, value.isEmpty {
                     return defaultValue
                 }
-                
+
                 if let value = transform(value) {
                     return value
                 }

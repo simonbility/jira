@@ -1,10 +1,3 @@
-//
-//  File.swift
-//
-//
-//  Created by Simon Anreiter on 28.05.20.
-//
-
 import ArgumentParser
 import Combine
 import Foundation
@@ -17,12 +10,12 @@ extension JiraError: LocalizedError {
         case .multipleIssuesFound(let issues):
             let names = issues.map(\.key).joined(separator: ", ")
             return """
-                Multiple Issues found: (\(names))
-                """
+            Multiple Issues found: (\(names))
+            """
         case .notFound:
             return """
-                Issue Not found
-                """
+            Issue Not found
+            """
         case .underlying(let e):
             return "\(e.localizedDescription)"
         case .custom(let m):
@@ -36,12 +29,12 @@ extension FindIssueError: LocalizedError {
         switch self {
         case .ambiguous(let issues):
             return """
-                Multiple Issues found: (\(commaSeparated:  issues.map(\.key)))
-                """
+            Multiple Issues found: (\(commaSeparated: issues.map(\.key)))
+            """
         case .notFound:
             return """
-                Issue Not found
-                """
+            Issue Not found
+            """
         case .underlying(let e):
             return "\(e.localizedDescription)"
         }
@@ -49,7 +42,6 @@ extension FindIssueError: LocalizedError {
 }
 
 struct Current: AsyncParsableCommand {
-
     enum Errors: String, LocalizedError {
         case noTicketPatternFound = "could not extract ticket from branch"
 
@@ -60,15 +52,21 @@ struct Current: AsyncParsableCommand {
         abstract: "get current jira ticket from branch-name"
     )
 
-    
     func run() async throws {
         let config = try Configuration.load()
         let api = API(config: config)
-        
+
         let key = try git.getIssueKeyFromBranch()
         let issue = try await api.find(key: key)
 
-        issue.write(to: terminal)
-    }
+        terminal.write(key, inColor: issue.fields.status.terminalColor)
+        terminal.write(": \(issue.sanitizedSummary)")
+        terminal.endLine()
 
+        let url = config.baseURL
+            .appendingPathComponent("browse")
+            .appendingPathComponent(issue.key)
+        // https://imobility.atlassian.net/browse/DEV-14366
+        terminal.writeLine(url.absoluteString, inColor: .cyan)
+    }
 }

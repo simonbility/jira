@@ -1,30 +1,22 @@
-//
-//  File.swift
-//
-//
-//  Created by Simon Anreiter on 01.07.22.
-//
-
 import Foundation
 
 struct IssueUpdates: Codable {
     var update: [String: [[String: JSON]]]
 
     mutating func remove(_ key: String, value: JSON) {
-        self.update[key, default: []].append(["remove": value])
+        update[key, default: []].append(["remove": value])
     }
 
     mutating func add(_ key: String, value: JSON) {
-        self.update[key, default: []].append(["add": value])
+        update[key, default: []].append(["add": value])
     }
-    
-    
+
     mutating func set(_ key: String, value: JSON) {
-        self.update[key, default: []].append(["set": value])
+        update[key, default: []].append(["set": value])
     }
 
     mutating func edit(_ key: String, value: JSON) {
-        self.update[key, default: []].append(["edit": value])
+        update[key, default: []].append(["edit": value])
     }
 }
 
@@ -64,7 +56,6 @@ public enum JSON: Equatable, Hashable {
         guard case .array(let value) = self else { return nil }
         return value
     }
-
 }
 
 extension JSON: ExpressibleByStringLiteral {
@@ -74,12 +65,11 @@ extension JSON: ExpressibleByStringLiteral {
 }
 
 extension JSON: ExpressibleByArrayLiteral {
-
     public init(arrayLiteral elements: ArrayLiteralElement...) {
         self = .array(elements)
     }
-    public typealias ArrayLiteralElement = JSON
 
+    public typealias ArrayLiteralElement = JSON
 }
 
 extension JSON: ExpressibleByDictionaryLiteral {
@@ -92,28 +82,26 @@ extension JSON: ExpressibleByDictionaryLiteral {
 }
 
 extension SingleValueDecodingContainer {
-
     fileprivate func decodeAsJSON<T: Decodable>(
-        ofType: T.Type? = nil,
+        ofType _: T.Type? = nil,
         _ transform: (T) -> JSON
     ) -> JSON? {
-        (try? self.decode(T.self)).map(transform)
+        (try? decode(T.self)).map(transform)
     }
 }
 
 extension JSON: Decodable {
-
     public init(from decoder: Decoder) throws {
-        var object: JSON? = nil
+        var object: JSON?
 
         if let container = try? decoder.singleValueContainer(), !container.decodeNil() {
             object =
                 container.decodeAsJSON(JSON.bool)
-                ?? container.decodeAsJSON(JSON.int)
-                ?? container.decodeAsJSON(JSON.double)
-                ?? container.decodeAsJSON(JSON.string)
-                ?? container.decodeAsJSON(JSON.array)
-                ?? container.decodeAsJSON(JSON.dictionary)
+                    ?? container.decodeAsJSON(JSON.int)
+                    ?? container.decodeAsJSON(JSON.double)
+                    ?? container.decodeAsJSON(JSON.string)
+                    ?? container.decodeAsJSON(JSON.array)
+                    ?? container.decodeAsJSON(JSON.dictionary)
         }
         self = object ?? .null
     }
@@ -138,8 +126,8 @@ extension JSON: Encodable {
 public struct JSONCodingKey: CodingKey {
     let key: String
 
-    public init?(intValue: Int) {
-        return nil
+    public init?(intValue _: Int) {
+        nil
     }
 
     public init?(stringValue: String) {
@@ -147,11 +135,10 @@ public struct JSONCodingKey: CodingKey {
     }
 
     public var intValue: Int? {
-        return nil
+        nil
     }
 
     public var stringValue: String {
-        return key
+        key
     }
-
 }

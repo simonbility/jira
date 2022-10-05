@@ -1,23 +1,16 @@
-//
-//  File.swift
-//
-//
-//  Created by Simon Anreiter on 25.05.20.
-//
-
 import Foundation
 import TSCBasic
 
 extension DefaultStringInterpolation {
     mutating func appendInterpolation(commaSeparated ids: [String]) {
-        self.appendLiteral("\(ids.joined(separator: ","))")
+        appendLiteral("\(ids.joined(separator: ","))")
     }
 }
 
 func comparing<Base, Value: Comparable>(
     _ keyPath: KeyPath<Base, Value>
 ) -> (Base, Base) -> Bool {
-    return { l, r in
+    { l, r in
         l[keyPath: keyPath] < r[keyPath: keyPath]
     }
 }
@@ -48,7 +41,6 @@ struct Sprint: Codable {
             range: range,
             withTemplate: ""
         ).trimmingCharacters(in: .whitespaces)
-
     }
 }
 
@@ -57,19 +49,17 @@ struct SprintSearchResults: Codable {
 }
 
 struct Issue: Codable {
-    
     var loggedTime: Int {
         fields.progress?.progress ?? 0
     }
-    
+
     var isBugOrDefect: Bool {
         let t = fields.issuetype.name.lowercased()
-        
+
         return t == "bug" || t == "defect"
     }
 
     static func findIssueKey(_ string: String, wholeMatch: Bool) -> String? {
-        
         let regex = wholeMatch ? #"^[A-Z]+-[0-9]+$"# : #"[A-Z]+-[0-9]+"#
         let nsString = string as NSString
         let range = nsString.range(of: regex, options: .regularExpression)
@@ -99,7 +89,6 @@ struct Issue: Codable {
         static func < (lhs: Issue.Component, rhs: Issue.Component) -> Bool {
             lhs.id < rhs.id
         }
-
     }
 
     struct IssueType: Codable, Hashable, Comparable {
@@ -130,7 +119,6 @@ struct Issue: Codable {
         static func < (lhs: Issue.IssueType, rhs: Issue.IssueType) -> Bool {
             (lhs.index, lhs.id) < (rhs.index, rhs.id)
         }
-
     }
 
     struct Status: Codable, Comparable {
@@ -141,7 +129,7 @@ struct Issue: Codable {
         let statusCategory: Category
 
         public static func < (lhs: Status, rhs: Status) -> Bool {
-            return (lhs.statusCategory, lhs.name) < (rhs.statusCategory, rhs.name)
+            (lhs.statusCategory, lhs.name) < (rhs.statusCategory, rhs.name)
         }
 
         struct Category: Codable, Comparable {
@@ -156,23 +144,22 @@ struct Issue: Codable {
             ]
 
             private var ordinal: Int {
-                return Category.knownCategories.firstIndex(of: name)
+                Category.knownCategories.firstIndex(of: name)
                     ?? Category.knownCategories.count
             }
 
             public static func < (lhs: Category, rhs: Category) -> Bool {
-                return (lhs.ordinal, lhs.name) < (lhs.ordinal, rhs.name)
+                (lhs.ordinal, lhs.name) < (lhs.ordinal, rhs.name)
             }
-
         }
 
         var terminalColor: TerminalController.Color {
-            switch self.statusCategory.colorName {
+            switch statusCategory.colorName {
             case "green": return .green
             case "yellow": return .yellow
             case "blue-gray": return .cyan
             default:
-                print("unhandled", self.statusCategory.colorName)
+                print("unhandled", statusCategory.colorName)
                 return .red
             }
         }
@@ -192,7 +179,7 @@ struct Issue: Codable {
 
     var sanitizedSummary: String {
         let droppedPrefixes = fields.components.map { "\($0.name): " }
-        var text = self.fields.summary
+        var text = fields.summary
 
         for prefix in droppedPrefixes where text.hasPrefix(prefix) {
             text = String(text.dropFirst(prefix.count))
@@ -202,12 +189,10 @@ struct Issue: Codable {
     }
 
     var canonicalName: String {
-        return
-            sanitizedSummary
+        sanitizedSummary
             .split { !$0.isLetter && !$0.isNumber }
             .map { $0.lowercased() }
             .joined(separator: "-")
-
     }
 
     var branch: (type: String, name: String) {
@@ -216,9 +201,10 @@ struct Issue: Codable {
 
     var branchType: String {
         let bugTypes = ["defect", "bug"]
-        return bugTypes.contains(self.fields.issuetype.name.lowercased())
+        return bugTypes.contains(fields.issuetype.name.lowercased())
             ? "bugfix" : "feature"
     }
+
     var fixVersions: [FixVersion] {
         fields.fixVersions ?? []
     }
@@ -230,13 +216,12 @@ struct Issue: Codable {
         let issuetype: IssueType
         let status: Status
         let fixVersions: [FixVersion]?
-        
 
         struct Progress: Codable {
             let progress: Int
         }
     }
-    
+
     struct FixVersion: Codable {
         let name: String
     }
@@ -251,13 +236,11 @@ struct Issue: Codable {
     }
 
     var attributes: [(key: String, value: String, color: TerminalController.Color)] {
-
         [
-            ("link     ", "https://imobility.atlassian.net/browse/\(key)", .cyan)
+            ("link     ", "https://imobility.atlassian.net/browse/\(key)", .cyan),
             //            ("status   ", fields.status.name, fields.status.terminalColor),
             //            ("branch   ", "\(branch.type)/\(branch.name)", .noColor),
             //            ("changelog", "\(fields.summary) [\(key)](https://imobility.atlassian.net/browse/\(key))",.noColor)
         ]
     }
-
 }

@@ -1,3 +1,4 @@
+import AppKit
 import ArgumentParser
 import Foundation
 import TSCBasic
@@ -54,5 +55,11 @@ struct Start: AsyncParsableCommand {
         try git.execute(
             "checkout", "-b", "\(branch.type)/\(branch.name)"
         )
+
+        let url = config.baseURL
+            .appendingPathComponent("browse")
+            .appendingPathComponent(issue.key)
+
+        NSWorkspace.shared.open(url)
     }
 }

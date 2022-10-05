@@ -1,0 +1,5 @@
+{
+  "baseURL" : "https:\/\/imobility.atlassian.net\/",
+  "defaultBoard" : "35",
+  "issuePrefix" : "DEV"
+}

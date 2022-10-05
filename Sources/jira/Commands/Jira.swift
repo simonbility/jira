@@ -5,7 +5,6 @@ import TSCUtility
 
 @main
 struct Jira: AsyncParsableCommand {
-
     static var configuration = CommandConfiguration(
         subcommands: [
             Init.self,
@@ -14,7 +13,7 @@ struct Jira: AsyncParsableCommand {
             Current.self,
             Finish.self,
             SprintReport.self,
+            Open.self,
         ]
     )
-
 }

@@ -7,6 +7,24 @@ enum SearchError: Error {
     case queryEmpty
 }
 
+extension String {
+    public func padded(to length: Int, with padCharacter: String = " ") -> String {
+        assert(length > 0)
+
+        if count < length {
+            return "\(self)\(repeatElement(padCharacter, count: length - count).joined())"
+        } else if count > length {
+            let prefixLength = (length - 3) / 2
+            let prefix = self.prefix(prefixLength)
+            let suffixLength = length - (prefix.count + 3)
+
+            return "\(prefix)...\(suffix(suffixLength))"
+        } else {
+            return self
+        }
+    }
+}
+
 struct Search: AsyncParsableCommand {
     static var configuration = CommandConfiguration(
         abstract: "Search issues on jira"
@@ -23,6 +41,9 @@ struct Search: AsyncParsableCommand {
 
     @Option(parsing: .upToNextOption)
     var status: [String] = []
+
+    @Option(parsing: .upToNextOption)
+    var label: [String] = []
 
     @Option(parsing: .singleValue)
     var sprint: [String] = []
@@ -47,6 +68,11 @@ struct Search: AsyncParsableCommand {
         if !status.isEmpty {
             builder.append("status in (\(commaSeparated: status.map { "\"\($0)\"" }))")
         }
+
+        if !label.isEmpty {
+            builder.append("labels in (\(commaSeparated: label.map { "\"\($0)\"" }))")
+        }
+
         if currentSprint {
             builder.append("sprint in openSprints()")
         }
@@ -80,12 +106,14 @@ struct Search: AsyncParsableCommand {
         }
 
         if !terminal.isInteractive {
+            let keyWidth = min(100, results.issues.map(\.fields.summary.count).max() ?? 0)
+
             for issue in results.issues {
-                terminal.write(issue.key)
-                terminal.write("\t")
+                terminal.write(issue.key.padded(to: 10))
+                terminal.write(" | ")
+                terminal.write(issue.fields.summary.padded(to: keyWidth))
+                terminal.write(" | ")
                 terminal.write(issue.fields.status.name)
-                terminal.write("\t")
-                terminal.write(issue.sanitizedSummary)
                 terminal.endLine()
             }
         } else {

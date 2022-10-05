@@ -4,15 +4,13 @@ import TSCBasic
 import TSCUtility
 
 struct SprintReport: AsyncParsableCommand {
-
     static var configuration = CommandConfiguration(
         abstract: "Generates a report about all Tickets in Sprint"
     )
 
     private static let maxPageSize = 20
- 
-    func run() async throws {
 
+    func run() async throws {
         let config = try Configuration.load()
         let api = API(config: config)
         let sprint = try await api.activeSprint(boardID: config.defaultBoard)
@@ -57,20 +55,21 @@ struct SprintReport: AsyncParsableCommand {
         printGroup(name: "Clients", allIssues: clientTickets)
         printGroup(name: "iOS", issues: iOSTickets)
         printGroup(name: "Android", issues: androidTickets)
-
     }
-    
+
     func printIntro(sprint: Sprint) {
         terminal.writeLine("---")
         terminal.writeLine("author: \(sprint.sanitizedName)")
         terminal.writeLine("---")
-        
+
         terminal.write(asciArt.getAsMarkdown(sprint.sanitizedName))
         terminal.endLine()
-        terminal.writeLine("https://imobility.atlassian.net/jira/software/c/projects/DEV/boards/35/reports/burnup-chart?sprint=\(sprint.id)")
-        
-        terminal.writeLine("---")
+        terminal
+            .writeLine(
+                "https://imobility.atlassian.net/jira/software/c/projects/DEV/boards/35/reports/burnup-chart?sprint=\(sprint.id)"
+            )
 
+        terminal.writeLine("---")
     }
 
     func printGroup(name: String, issues: [Issue]) {
@@ -123,7 +122,6 @@ struct SprintReport: AsyncParsableCommand {
                             inColor: issue.fields.status.terminalColor
                         )
                     } else {
-
                         let componentToStatus = issues.flatMap { iss in
                             iss.fields.components.map { ($0, iss.fields.status) }
                         }
@@ -138,7 +136,6 @@ struct SprintReport: AsyncParsableCommand {
                                 inColor: issue.fields.status.terminalColor
                             )
                         }
-
                     }
 
                     terminal.write(")")
@@ -147,7 +144,6 @@ struct SprintReport: AsyncParsableCommand {
                 counter += 1
 
                 terminal.endLine()
-
             }
 
             terminal.endLine()
@@ -155,15 +151,14 @@ struct SprintReport: AsyncParsableCommand {
             terminal.endLine()
         }
     }
-
 }
 
 extension Array {
     mutating func extract(
         where predicate: (Element) -> Bool
     ) -> [Element] {
-        let result = self.filter(predicate)
-        self.removeAll(where: predicate)
+        let result = filter(predicate)
+        removeAll(where: predicate)
         return result
     }
 
@@ -172,7 +167,6 @@ extension Array {
     ) -> [Element] {
         var seen: Set<Key> = []
 
-        return self.filter { seen.insert(key($0)).inserted }
+        return filter { seen.insert(key($0)).inserted }
     }
-
 }

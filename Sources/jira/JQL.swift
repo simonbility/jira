@@ -1,10 +1,3 @@
-//
-//  File.swift
-//
-//
-//  Created by Simon Anreiter on 18.02.22.
-//
-
 import Foundation
 
 public protocol ResultBuilder {
@@ -31,32 +24,33 @@ extension ResultBuilder {
     public static func buildExpression(
         _ expression: Element
     ) -> [Element] {
-        return [expression]
+        [expression]
     }
 
     public static func buildIf(
         _ content: [Element]?
-    ) -> [Element] { return content ?? [] }
+    ) -> [Element] { content ?? [] }
 
     public static func buildOptional(
         _ content: [Element]?
-    ) -> [Element] { return content ?? [] }
+    ) -> [Element] { content ?? [] }
 
     public static func buildArray(
         _ content: [[Element]]
-    ) -> [Element] { return content.flatMap { $0 } }
+    ) -> [Element] { content.flatMap { $0 } }
 
     public static func buildEither(first: [Element]) -> [Element] {
-        return first
+        first
     }
 
     public static func buildEither(second: [Element]) -> [Element] {
-        return second
+        second
     }
 
     public static func buildFinalResult(_ elements: [Element]) -> FinalResult
-    where FinalResult == [Element] {
-        return elements
+        where FinalResult == [Element]
+    {
+        elements
     }
 }
 
@@ -72,9 +66,8 @@ enum JQLBuilder: ResultBuilder {
     public static func buildExpression(
         _ expression: String
     ) -> [Element] {
-        return [JQL(rawValue: expression)]
+        [JQL(rawValue: expression)]
     }
-
 }
 
 struct JQL: Codable, ExpressibleByStringLiteral, ExpressibleByStringInterpolation {
@@ -88,25 +81,24 @@ struct JQL: Codable, ExpressibleByStringLiteral, ExpressibleByStringInterpolatio
         self.rawValue = rawValue
     }
 
-    
     init(stringLiteral value: String) {
-        self.rawValue = value
+        rawValue = value
     }
 
     func `in`(_ collection: JQL...) -> JQL {
-        return JQL(
+        JQL(
             rawValue: "\(rawValue) in (\(collection.map { $0.rawValue }.joined(separator: ", ")))"
         )
     }
 
     func and(_ other: JQL) -> JQL {
-        return JQL(
+        JQL(
             rawValue: "\(rawValue) AND \(other.rawValue)"
         )
     }
 
     func or(_ other: JQL) -> JQL {
-        return JQL(
+        JQL(
             rawValue: "\(rawValue) OR \(other.rawValue)"
         )
     }

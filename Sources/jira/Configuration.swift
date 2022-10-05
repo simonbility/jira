@@ -1,5 +1,5 @@
-import Foundation
 import ArgumentParser
+import Foundation
 
 struct Configuration: Codable {
     let baseURL: URL
@@ -9,7 +9,7 @@ struct Configuration: Codable {
     let getFixVersionCommand: String?
     let defaultFixVersion: String?
 
-    static let defaultBaseURL = URL(string: "https://imobility.atlassian.net/rest/")!
+    static let defaultBaseURL = URL(string: "https://imobility.atlassian.net/")!
     static let defaultIssuePrefix = "DEV"
     static let defaultDefaultBoard = "35"
 
@@ -26,13 +26,14 @@ struct Configuration: Codable {
 
         for url in candidates {
             var isDirectory: ObjCBool = false
-            if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory), !isDirectory.boolValue {
+            if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+               !isDirectory.boolValue
+            {
                 let data = try Data(contentsOf: url)
                 return try JSONDecoder().decode(Configuration.self, from: data)
             }
         }
 
         throw CleanExit.message("No config file found run 'jira init' to create one")
-
     }
 }
