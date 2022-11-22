@@ -12,24 +12,28 @@ struct Open: AsyncParsableCommand {
         var errorDescription: String? { rawValue }
     }
 
-    @Argument var number: String
+    @Argument var number: String?
 
     static var configuration = CommandConfiguration(
-        abstract: "open jira ticket in browser"
+        abstract: "open jira ticket in browser (if no number passed it will try to get it from the current brunch name)"
     )
 
     func run() async throws {
         let config = try Configuration.load()
-
         var sanitizedNumber = number
 
-        if let url = URL(string: number), url.host == config.baseURL.host {
-            sanitizedNumber = url.lastPathComponent
-        } else if let key = Issue.findIssueKey(number, wholeMatch: true) {
-            sanitizedNumber = key
-        } else if number.allSatisfy(\.isNumber) {
-            sanitizedNumber = "\(config.issuePrefix)-\(number)"
+        if let number = number {
+            if let url = URL(string: number), url.host == config.baseURL.host {
+                sanitizedNumber = url.lastPathComponent
+            } else if let key = Issue.findIssueKey(number, wholeMatch: true) {
+                sanitizedNumber = key
+            } else if number.allSatisfy(\.isNumber) {
+                sanitizedNumber = "\(config.issuePrefix)-\(number)"
+            }
+        } else {
+            sanitizedNumber = try? git.getIssueKeyFromBranch()
         }
+            
 
         precondition(
             Issue.findIssueKey(sanitizedNumber, wholeMatch: true) != nil,

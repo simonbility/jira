@@ -6,7 +6,7 @@ import TSCUtility
 
 struct Start: AsyncParsableCommand {
     static var configuration = CommandConfiguration(
-        abstract: "start new feature branch using ticket-number",
+        abstract: "start new feature branch using ticket-number (if no number passed it will try to get it from a clipboard, like a link or a number)",
         discussion: """
         This will:
         * create a new branch
@@ -15,12 +15,17 @@ struct Start: AsyncParsableCommand {
         """
     )
 
-    @Argument var number: String
+    @Argument var number: String?
     @Argument var assignTo: String?
 
     func run() async throws {
         let config = try Configuration.load()
         let api = API(config: config)
+        
+        guard let number: String = self.number ?? NSPasteboard.general.string(forType: .string) else {
+            precondition(false, "There is no any source of jira ticket, use 'number' argument or copy the ticket's link/number to clipboard")
+            return
+        }
 
         var sanitizedNumber = number
 
