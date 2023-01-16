@@ -21,7 +21,7 @@ struct Open: AsyncParsableCommand {
     func run() async throws {
         let config = try Configuration.load()
         var sanitizedNumber = number
-
+        
         if let number = number {
             if let url = URL(string: number), url.host == config.baseURL.host {
                 sanitizedNumber = url.lastPathComponent
@@ -33,6 +33,8 @@ struct Open: AsyncParsableCommand {
         } else {
             sanitizedNumber = try? git.getIssueKeyFromBranch()
         }
+        
+        guard let sanitizedNumber = sanitizedNumber else { return }
             
 
         precondition(
