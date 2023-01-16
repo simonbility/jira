@@ -124,6 +124,16 @@ struct Git {
         try Shell.execute(arguments: [executable] + arguments)
     }
 
+    func getSourceBranchName() throws -> String {
+        try execute(
+            reason: "Get Source Branch Name",
+            "rev-parse",
+            "--abbrev-ref",
+            "--symbolic-full-name",
+            "@{-1}"
+        )
+    }
+    
     func getCurrentBranch() throws -> String {
         try execute(
             reason: "Get Branch Name",
