@@ -65,7 +65,10 @@ struct Finish: AsyncParsableCommand {
 
         if let base = base {
             arguments += ["--base", base]
+        } else if let base = try? git.getSourceBranchName() {
+            arguments += ["--base", base]
         }
+        
         _ = try git.pushCurrentBranch()
         _ = try Shell.execute(arguments: arguments)
     }
