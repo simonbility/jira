@@ -28,7 +28,7 @@ struct Finish: AsyncParsableCommand {
 
         let issue = try await api.find(key: key)
 
-        if issue.isBugOrDefect, issue.loggedTime == 0 {
+        if issue.loggedTime == 0 {
             let time = terminal.askChecked(
                 "Time Spent",
                 transform: { $0 }
