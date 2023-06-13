@@ -20,7 +20,10 @@ struct Configuration: Codable {
 
     static func load() throws -> Configuration {
         let candidates = [
-            currentConfigURL,
+            URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+                .appendingPathComponent(".jira-config"),
+            URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+                .appendingPathComponent(".jira"),
             userConfigURL,
         ]
 
