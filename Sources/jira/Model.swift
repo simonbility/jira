@@ -48,7 +48,7 @@ struct SprintSearchResults: Codable {
     let values: [Sprint]
 }
 
-struct Issue: Codable {
+class Issue: Codable {
     var loggedTime: Int {
         fields.progress?.progress ?? 0
     }
@@ -57,6 +57,12 @@ struct Issue: Codable {
         let t = fields.issuetype.name.lowercased()
 
         return t == "bug" || t == "defect"
+    }
+
+    var isEpic: Bool {
+        let t = fields.issuetype.name.lowercased()
+
+        return t == "epic"
     }
 
     static func findIssueKey(_ string: String, wholeMatch: Bool) -> String? {
@@ -167,6 +173,7 @@ struct Issue: Codable {
 
     //    let status: Status
     let `self`: URL
+    let id: String
     let key: String
     let fields: Fields
     var isClosed: Bool {
@@ -174,11 +181,16 @@ struct Issue: Codable {
     }
 
     var componentKey: String {
-        fields.components.sorted().map(\.name).joined(separator: ", ")
+        fields.components?.sorted().map(\.name).joined(separator: ", ") ?? ""
+    }
+    
+    
+    var keyAndSummary: String {
+        "\(key): \(fields.summary)"
     }
 
     var sanitizedSummary: String {
-        let droppedPrefixes = fields.components.map { "\($0.name): " }
+        let droppedPrefixes = fields.components?.map { "\($0.name): " } ?? []
         var text = fields.summary
 
         for prefix in droppedPrefixes where text.hasPrefix(prefix) {
@@ -209,13 +221,14 @@ struct Issue: Codable {
         fields.fixVersions ?? []
     }
 
-    struct Fields: Codable {
+    class Fields: Codable {
         let summary: String
-        let components: [Component]
+        let components: [Component]?
         let progress: Progress?
         let issuetype: IssueType
         let status: Status
         let fixVersions: [FixVersion]?
+        let parent: Issue?
 
         struct Progress: Codable {
             let progress: Int
