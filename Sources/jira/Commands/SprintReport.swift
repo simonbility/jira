@@ -8,16 +8,18 @@ struct SprintReport: AsyncParsableCommand {
         abstract: "Generates a report about all Tickets in Sprint"
     )
 
-    @Flag var includeTickets = false
+    @Flag(inversion: .prefixedNo) var includeTickets = true
+    @Flag(inversion: .prefixedNo) var includeTestTickets = false
+    @Option var sprint: Int?
 
     func run() async throws {
         let config = try Configuration.load()
         let api = API(config: config)
-        let sprint = try await api.activeSprint(boardID: config.defaultBoard)
+        let sprint = try await api.activeSprint(boardID: config.defaultBoard, sprintID: sprint)
 
         let results = try await api.search(
             JQL {
-                "sprint in openSprints()"
+                "sprint in (\(sprint.id))"
                 "issuetype in (Story,Operations,Improvement)"
                 "component in (ios,android,backend)"
             }
@@ -30,6 +32,15 @@ struct SprintReport: AsyncParsableCommand {
             $0.isEpic
         }
         .distinct(by: \.key)
+
+        let keys = epics.map { $0.key }.joined(separator: ",")
+
+        let integrationTests = try await api.search(
+            JQL {
+                "labels in (dev-qa-task)"
+                "parent in (\(keys))"
+            }
+        )
 
         var components = URLComponents(
             string: "https://imobility.atlassian.net/jira/software/c/projects/DEV/boards/2/timeline"
@@ -59,10 +70,21 @@ struct SprintReport: AsyncParsableCommand {
                 terminal.write(group.key)
                 terminal.endLine()
                 for issue in group.value {
+                    terminal.write("* ")
                     terminal.writeLine(issue.keyAndSummary)
                 }
                 terminal.endLine()
             }
+        }
+
+        if includeTestTickets {
+            terminal.write("## IntegrationTestTickets")
+            terminal.endLine()
+            for issue in integrationTests.issues {
+                terminal.writeLine("https://imobility.atlassian.net/browse/\(issue.key)")
+//                terminal.writeLine(issue.keyAndSummary)
+            }
+            terminal.endLine()
         }
     }
 

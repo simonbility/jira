@@ -51,12 +51,20 @@ class API: JiraAPI {
         try await _search(search)
     }
 
-    func activeSprint(boardID: String) async throws -> Sprint {
-        try await sendGet(
-            as: SprintSearchResults.self,
-            path: "rest/agile/1.0/board/\(boardID)/sprint",
-            query: ["state": "active"]
-        ).values[0]
+    func activeSprint(boardID: String, sprintID: Int?) async throws -> Sprint {
+        if let sprintID {
+            try await sendGet(
+                as: Sprint.self,
+                path: "rest/agile/1.0/sprint/\(sprintID)",
+                query: [:]
+            )
+        } else {
+            try await sendGet(
+                as: SprintSearchResults.self,
+                path: "rest/agile/1.0/board/\(boardID)/sprint",
+                query: ["state": "active"]
+            ).values[0]
+        }
     }
 
     func find(key: String) async throws -> Issue {
@@ -185,9 +193,9 @@ class API: JiraAPI {
             let (data, _) = try await session.data(for: prepareRequest(urlRequest))
             d = data
 
-//            if let d = d {
-//                print(String(data: d, encoding: .utf8)!)
-//            }
+            if let d = d {
+                print(String(data: d, encoding: .utf8)!)
+            }
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
             if let d = d {

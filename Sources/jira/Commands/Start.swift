@@ -16,15 +16,17 @@ struct Start: AsyncParsableCommand {
     )
 
     @Argument var number: String?
-    @Argument var assignTo: String?
+    @Option var sprint: Int?
 
     func run() async throws {
         let config = try Configuration.load()
         let api = API(config: config)
-        
-        guard let number: String = self.number ?? NSPasteboard.general.string(forType: .string) else {
-            precondition(false, "There is no any source of jira ticket, use 'number' argument or copy the ticket's link/number to clipboard")
-            return
+
+        guard let number: String = self.number ?? NSPasteboard.general.string(forType: .string)
+        else {
+            preconditionFailure(
+                "There is no any source of jira ticket, use 'number' argument or copy the ticket's link/number to clipboard"
+            )
         }
 
         var sanitizedNumber = number
@@ -43,15 +45,13 @@ struct Start: AsyncParsableCommand {
         )
 
         let issue = try await api.find(key: sanitizedNumber)
-        let currentSprint = try await api.activeSprint(boardID: config.defaultBoard)
+        let currentSprint = try await api.activeSprint(
+            boardID: config.defaultBoard,
+            sprintID: sprint
+        )
 
-        let accountID: String
+        let accountID = try await api.getCurrentUser().accountId
 
-        if let assignTo = assignTo {
-            accountID = assignTo
-        } else {
-            accountID = try await api.getCurrentUser().accountId
-        }
         try await api.moveIssuesToSprint(sprint: currentSprint, issues: [issue])
         try await api.assignIssue(issue, userID: accountID)
 

@@ -104,6 +104,8 @@ struct Search: AsyncParsableCommand {
             grouped[issue.componentKey, default: [:]][issue.fields.issuetype.name, default: []]
                 .append(issue)
         }
+        
+        
 
         if !terminal.isInteractive {
             let keyWidth = min(100, results.issues.map(\.fields.summary.count).max() ?? 0)
