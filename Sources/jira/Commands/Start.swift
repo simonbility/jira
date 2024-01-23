@@ -45,15 +45,23 @@ struct Start: AsyncParsableCommand {
         )
 
         let issue = try await api.find(key: sanitizedNumber)
-        let currentSprint = try await api.activeSprint(
-            boardID: config.defaultBoard,
-            sprintID: sprint
-        )
 
         let accountID = try await api.getCurrentUser().accountId
 
-        try await api.moveIssuesToSprint(sprint: currentSprint, issues: [issue])
-        try await api.assignIssue(issue, userID: accountID)
+//        try await api.moveIssuesToSprint(sprint: currentSprint, issues: [issue])
+//        try await api.assignIssue(issue, userID: accountID)
+
+        try await api.applyIssueUpdate(issue.key) {
+            if let teamID = config.teamID {
+                $0.set("customfield_10400", value: .string(teamID))
+            }
+            $0.set("assignee", value: ["accountId": .string(accountID)]) // .string(teamID))
+        }
+
+        if issue.fields.status.id == .inProgress {
+            terminal.writeLine("Transitioning to 'In Progress'")
+            try await api.transition(issue.key, id: "31")
+        }
 
         let branch = issue.branch
 

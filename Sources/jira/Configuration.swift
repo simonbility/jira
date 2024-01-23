@@ -7,11 +7,10 @@ struct Configuration: Codable {
     let defaultBoard: String
     let defaultComponent: String?
     let getFixVersionCommand: String?
-    let defaultFixVersion: String?
+    let teamID: String?
 
     static let defaultBaseURL = URL(string: "https://imobility.atlassian.net/")!
-    static let defaultIssuePrefix = "DEV"
-    static let defaultDefaultBoard = "35"
+    static let defaultIssuePrefix = "IMOB"
 
     static let currentConfigURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         .appendingPathComponent(".jira")

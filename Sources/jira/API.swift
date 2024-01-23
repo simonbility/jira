@@ -133,6 +133,16 @@ class API: JiraAPI {
         try await sendPut(updates, path: "rest/api/3/issue/\(key)")
     }
 
+    func transition(
+        _ key: String,
+        id: String
+    ) async throws {
+        try await sendPost(
+            ["transition": ["id": .string(id)]] as JSON,
+            path: "rest/api/3/issue/\(key)/transitions"
+        )
+    }
+
     func moveIssuesToSprint(
         sprint: Sprint,
         issues: [Issue]
@@ -166,6 +176,14 @@ class API: JiraAPI {
         try await sendPost(Payload(timeSpent: time), path: "rest/api/2/issue/\(issue.key)/worklog")
     }
 
+    public func getTransitions(_ key: String) async throws {
+        try await sendGet(
+            as: SearchResults.self,
+            path: "rest/api/2/issue/\(key)/transitions",
+            query: [:]
+        )
+    }
+
     private func sendGet<T: Decodable>(
         as _: T.Type = T.self,
         path: String,
@@ -193,9 +211,9 @@ class API: JiraAPI {
             let (data, _) = try await session.data(for: prepareRequest(urlRequest))
             d = data
 
-            if let d = d {
-                print(String(data: d, encoding: .utf8)!)
-            }
+//            if let d = d {
+//                print(String(data: d, encoding: .utf8)!)
+//            }
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
             if let d = d {
@@ -225,8 +243,11 @@ class API: JiraAPI {
         }
 
         let encoder = JSONEncoder()
+        let body = try encoder.encode(payload)
+//        print(String(data: body, encoding: .utf8)!)
+
         urlRequest.httpMethod = method
-        urlRequest.httpBody = try encoder.encode(payload)
+        urlRequest.httpBody = body
 
         var data: Data?
 

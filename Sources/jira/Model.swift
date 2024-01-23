@@ -129,10 +129,30 @@ class Issue: Codable {
 
     struct Status: Codable, Comparable {
         let `self`: URL
-        let id: String
+        let id: ID
         let name: String
         let description: String
         let statusCategory: Category
+
+        struct ID: Codable, Equatable {
+            let rawValue: String
+
+            static let inProgress = ID(rawValue: "10484")
+
+            init(rawValue: String) {
+                self.rawValue = rawValue
+            }
+
+            init(from decoder: Decoder) throws {
+                var container = try decoder.singleValueContainer()
+                self.rawValue = try container.decode(String.self)
+            }
+
+            func encode(to encoder: Encoder) throws {
+                var container = encoder.singleValueContainer()
+                try container.encode(self.rawValue)
+            }
+        }
 
         public static func < (lhs: Status, rhs: Status) -> Bool {
             (lhs.statusCategory, lhs.name) < (rhs.statusCategory, rhs.name)
@@ -183,8 +203,7 @@ class Issue: Codable {
     var componentKey: String {
         fields.components?.sorted().map(\.name).joined(separator: ", ") ?? ""
     }
-    
-    
+
     var keyAndSummary: String {
         "\(key): \(fields.summary)"
     }
@@ -253,7 +272,8 @@ class Issue: Codable {
             ("link     ", "https://imobility.atlassian.net/browse/\(key)", .cyan),
             //            ("status   ", fields.status.name, fields.status.terminalColor),
             //            ("branch   ", "\(branch.type)/\(branch.name)", .noColor),
-            //            ("changelog", "\(fields.summary) [\(key)](https://imobility.atlassian.net/browse/\(key))",.noColor)
+            //            ("changelog", "\(fields.summary)
+            //            [\(key)](https://imobility.atlassian.net/browse/\(key))",.noColor)
         ]
     }
 }

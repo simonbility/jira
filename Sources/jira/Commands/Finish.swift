@@ -28,20 +28,18 @@ struct Finish: AsyncParsableCommand {
 
         let issue = try await api.find(key: key)
 
-        if issue.loggedTime == 0 {
-            let time = terminal.askChecked(
-                "Time Spent",
-                transform: { $0 }
-            )
-            try await api.logTime(issue, time: time)
-        }
+        let url = config.baseURL
+            .appendingPathComponent("browse")
+            .appendingPathComponent(issue.key)
+        
+        terminal.writeLine("Please Log Time")
 
+        NSWorkspace.shared.open(url)
+        
         let fixVersion: String?
 
         if let cmd = config.getFixVersionCommand {
             fixVersion = try Shell.execute(arguments: [cmd])
-        } else if let defaultVersion = config.defaultFixVersion {
-            fixVersion = defaultVersion
         } else {
             fixVersion = nil
         }
@@ -68,7 +66,7 @@ struct Finish: AsyncParsableCommand {
         } else if let base = try? git.getSourceBranchName() {
             arguments += ["--base", base]
         }
-        
+
         _ = try git.pushCurrentBranch()
         _ = try Shell.execute(arguments: arguments)
     }

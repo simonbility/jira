@@ -1,0 +1,6 @@
+{
+  "baseURL" : "https:\/\/imobility.atlassian.net\/",
+  "defaultBoard" : "63",
+  "getFixVersionCommand" : "scripts\/get-fix-version.sh",
+  "issuePrefix" : "IMOB"
+}
