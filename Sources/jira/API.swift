@@ -11,7 +11,7 @@ enum JiraError: Error {
 }
 
 protocol JiraAPI {
-    func search(_ search: JQL) async throws -> SearchResults
+    func search(_ search: JQL) async throws -> (results: SearchResults, rawJson: String)
     func find(key: String) async throws -> Issue
 }
 
@@ -47,7 +47,7 @@ class API: JiraAPI {
         try await sendGet(path: "rest/api/2/myself", query: [:])
     }
 
-    func search(_ search: JQL) async throws -> SearchResults {
+    func search(_ search: JQL) async throws -> (results: SearchResults, rawJson: String) {
         try await _search(search)
     }
 
@@ -70,7 +70,7 @@ class API: JiraAPI {
     func find(key: String) async throws -> Issue {
         let jql = JQL(rawValue: "key = \(key)")
 
-        let results = try await _search(jql)
+        let results = try await _search(jql).results
 
         switch results.issues.count {
         case 1: return results.issues[0]
@@ -94,17 +94,29 @@ class API: JiraAPI {
 
     private func _search(
         _ search: JQL
-    ) async throws -> SearchResults {
+    ) async throws -> (results: SearchResults, rawJson: String) {
         terminal.write("Searching: ", debug: true)
         terminal.writeLine(search.rawValue, inColor: .cyan, debug: true)
 
-        return try await sendGet(
+        let json: JSON = try await sendGet(
             path: "rest/api/3/search",
             query: [
                 "jql": search.rawValue,
                 "maxResults": "500",
             ]
         )
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [
+            .prettyPrinted,
+            .sortedKeys,
+            .withoutEscapingSlashes,
+        ]
+
+        let data = try encoder.encode(json)
+        let results = try JSONDecoder().decode(SearchResults.self, from: data)
+        
+        return (results, String(data: data, encoding: .utf8)!)
     }
 
     func assignIssue(_ issue: Issue, userID: String) async throws {

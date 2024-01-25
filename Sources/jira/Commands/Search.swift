@@ -53,6 +53,8 @@ struct Search: AsyncParsableCommand {
     @Flag var open = false
     @Flag var closed = false
 
+    @Flag var json = false
+
     var query: JQL {
         var builder = raw
 
@@ -96,7 +98,7 @@ struct Search: AsyncParsableCommand {
         guard !query.rawValue.isEmpty else {
             throw SearchError.queryEmpty
         }
-        let results = try await api.search(query)
+        let (results, raw) = try await api.search(query)
 
         var grouped: [String: [String: [Issue]]] = [:]
 
@@ -104,10 +106,10 @@ struct Search: AsyncParsableCommand {
             grouped[issue.componentKey, default: [:]][issue.fields.issuetype.name, default: []]
                 .append(issue)
         }
-        
-        
 
-        if !terminal.isInteractive {
+        if json {
+            print(raw)
+        } else if !terminal.isInteractive {
             let keyWidth = min(100, results.issues.map(\.fields.summary.count).max() ?? 0)
 
             for issue in results.issues {
