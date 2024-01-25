@@ -176,14 +176,6 @@ class API: JiraAPI {
         try await sendPost(Payload(timeSpent: time), path: "rest/api/2/issue/\(issue.key)/worklog")
     }
 
-    public func getTransitions(_ key: String) async throws {
-        try await sendGet(
-            as: SearchResults.self,
-            path: "rest/api/2/issue/\(key)/transitions",
-            query: [:]
-        )
-    }
-
     private func sendGet<T: Decodable>(
         as _: T.Type = T.self,
         path: String,

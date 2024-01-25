@@ -12,7 +12,6 @@ struct Jira: AsyncParsableCommand {
             Start.self,
             Current.self,
             Finish.self,
-            SprintReport.self,
             Open.self,
         ]
     )

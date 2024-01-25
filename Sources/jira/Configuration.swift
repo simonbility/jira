@@ -4,8 +4,6 @@ import Foundation
 struct Configuration: Codable {
     let baseURL: URL
     let issuePrefix: String
-    let defaultBoard: String
-    let defaultComponent: String?
     let getFixVersionCommand: String?
     let teamID: String?
 
@@ -18,24 +16,37 @@ struct Configuration: Codable {
         .appendingPathComponent(".jira")
 
     static func load() throws -> Configuration {
+        // sorted from generic to specific
         let candidates = [
+            FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".jira-config"),
             URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
                 .appendingPathComponent(".jira-config"),
             URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-                .appendingPathComponent(".jira"),
-            userConfigURL,
+                .appendingPathComponent(".jira-config-user"), // should be placed in gitignore
         ]
 
-        for url in candidates {
+        let configURLs = candidates.filter { url in
             var isDirectory: ObjCBool = false
-            if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
-               !isDirectory.boolValue
-            {
-                let data = try Data(contentsOf: url)
-                return try JSONDecoder().decode(Configuration.self, from: data)
-            }
+
+            let exists = FileManager.default
+                .fileExists(atPath: url.path, isDirectory: &isDirectory)
+
+            return exists && !isDirectory.boolValue
         }
 
-        throw CleanExit.message("No config file found run 'jira init' to create one")
+        if configURLs.isEmpty {
+            throw CleanExit.message("No config file found run 'jira init' to create one")
+        }
+
+        let mergedConfigs: [String: JSON] = try configURLs.reduce(into: [:]) { partialResult, url in
+            let config = try JSONDecoder().decode([String: JSON].self, from: Data(contentsOf: url))
+
+            partialResult.merge(config, uniquingKeysWith: { _, new in new })
+        }
+
+        let mergedData = try JSONEncoder().encode(mergedConfigs)
+
+        return try JSONDecoder().decode(Configuration.self, from: mergedData)
     }
 }

@@ -4,8 +4,6 @@ import Foundation
 struct Init: AsyncParsableCommand {
     @Option var baseURL: String = Configuration.defaultBaseURL.absoluteString
     @Option var issuePrefix: String = Configuration.defaultIssuePrefix
-    @Option var defaultBoard: String
-    @Option var defaultComponent: String?
     @Option var teamID: String?
     @Option(
         help: ArgumentHelp("path to a script providing the current fix-version"),
@@ -37,8 +35,6 @@ struct Init: AsyncParsableCommand {
         let config = Configuration(
             baseURL: baseURL,
             issuePrefix: issuePrefix,
-            defaultBoard: defaultBoard,
-            defaultComponent: defaultComponent,
             getFixVersionCommand: getFixVersionCommand,
             teamID: teamID
         )

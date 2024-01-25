@@ -144,7 +144,7 @@ class Issue: Codable {
             }
 
             init(from decoder: Decoder) throws {
-                var container = try decoder.singleValueContainer()
+                let container = try decoder.singleValueContainer()
                 self.rawValue = try container.decode(String.self)
             }
 
