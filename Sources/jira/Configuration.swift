@@ -49,6 +49,8 @@ struct Configuration: Codable {
         let decoder = YAMLDecoder()
 
         let mergedConfigs: [String: JSON] = try configURLs.reduce(into: [:]) { partialResult, url in
+            terminal.writeLine("Using config at \(url.path)", inColor: .green, debug: true)
+            
             let config = try decoder.decode([String: JSON].self, from: Data(contentsOf: url))
 
             partialResult.merge(config, uniquingKeysWith: { _, new in new })

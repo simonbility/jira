@@ -7,7 +7,7 @@ import TSCUtility
 struct Jira: AsyncParsableCommand {
     static var configuration = CommandConfiguration(
         subcommands: [
-            Init.self,
+            DumpConfig.self,
             Search.self,
             Start.self,
             Current.self,
